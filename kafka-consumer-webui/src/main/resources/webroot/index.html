@@ -1,0 +1,23 @@
+<html>
+<head>
+  <script src="jquery-3.1.1.min.js"></script>
+  <script src="sockjs.min.js"></script>
+  <script src="vertxbus.js"></script>
+<body>
+<h1>Apache Kafka messages dashboard</h1>
+
+<div id="messages"></div>
+
+<script>
+    var eb = new vertx.EventBus("http://" + location.host + "/eventbus");
+    eb.onopen = function() {
+      console.log("open");
+      eb.registerHandler("dashboard", function(message) {
+        console.log(message);
+        $('#messages').prepend('<div>' + message + '</div>');
+      });
+    };
+  </script>
+
+</body>
+</html>

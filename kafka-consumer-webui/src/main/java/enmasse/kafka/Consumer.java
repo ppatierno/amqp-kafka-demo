@@ -17,11 +17,18 @@
 package enmasse.kafka;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServer;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.StaticHandler;
+import io.vertx.ext.web.handler.sockjs.BridgeOptions;
+import io.vertx.ext.web.handler.sockjs.PermittedOptions;
+import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.Properties;
 
 /**
@@ -37,6 +44,25 @@ public class Consumer {
 
     Vertx vertx = Vertx.vertx();
 
+    Router router = Router.router(vertx);
+
+    BridgeOptions options = new BridgeOptions();
+    options.setOutboundPermitted(Collections.singletonList(new PermittedOptions().setAddress("dashboard")));
+    router.route("/eventbus/*").handler(SockJSHandler.create(vertx).bridge(options));
+    router.route().handler(StaticHandler.create().setCachingEnabled(false));
+
+    HttpServer httpServer = vertx.createHttpServer();
+    httpServer
+      .requestHandler(router::accept)
+      .listen(8080, done -> {
+
+        if (done.succeeded()) {
+          LOG.info("HTTP server started on port {}", done.result().actualPort());
+        } else {
+          LOG.error("HTTP server not started", done.cause());
+        }
+      });
+
     Properties config = new Properties();
     config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVERS);
     config.put(ConsumerConfig.GROUP_ID_CONFIG, "mygroup");
@@ -46,6 +72,7 @@ public class Consumer {
     consumer.handler(record -> {
       LOG.info("Received on topic={}, partition={}, offset={}, value={}",
         record.topic(), record.partition(), record.offset(), record.value());
+      vertx.eventBus().publish("dashboard", record.value());
     });
     consumer.subscribe("kafka.mytopic");
   }
