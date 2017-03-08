@@ -38,9 +38,12 @@ public class Consumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
 
-  private static final String KAFKA_BOOTSTRAP_SERVERS = "172.30.149.195:9092";
+  private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
 
   public static void main(String[] args) {
+
+    String kafkaBootstrapServers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
+    LOG.info("KAFKA_BOOTSTRAP_SERVERS = {}", kafkaBootstrapServers);
 
     Vertx vertx = Vertx.vertx();
 
@@ -64,7 +67,7 @@ public class Consumer {
       });
 
     Properties config = new Properties();
-    config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_BOOTSTRAP_SERVERS);
+    config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
     config.put(ConsumerConfig.GROUP_ID_CONFIG, "mygroup");
     config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 

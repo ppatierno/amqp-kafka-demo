@@ -38,4 +38,127 @@
     </dependency>
   </dependencies>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptorRefs>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
+          </descriptorRefs>
+          <archive>
+            <manifest>
+              <mainClass>enmasse.kafka.Consumer</mainClass>
+            </manifest>
+          </archive>
+          <appendAssemblyId>false</appendAssemblyId>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>build-docker-image</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>io.fabric8</groupId>
+            <artifactId>fabric8-maven-plugin</artifactId>
+            <version>3.2.14</version>
+            <configuration>
+              <!--<mode>kubernetes</mode>-->
+              <verbose>true</verbose>
+              <images>
+                <image>
+                  <name>enmasseproject/kafka-consumer-webui:${project.version}</name>
+                  <build>
+                    <from>openjdk:8-jre-alpine</from>
+                    <ports>
+                      <port>8080</port>
+                    </ports>
+                    <!--<cmd>
+                      <exec>
+                        <arg>java</arg>
+                        <arg>-Dvertx.cacheDirBase=/tmp</arg>
+                        <arg>-Dvertx.disableDnsResolver=true</arg>
+                        <arg>-Dnetworkaddress.cache.ttl=0</arg>
+                        <arg>-Dnetworkaddress.cache.negative.ttl=0</arg>
+                        <arg>-jar</arg>
+                        <arg>
+                          /${project.artifactId}-${project.version}.jar
+                        </arg>
+                      </exec>
+                    </cmd>-->
+                    <cmd>
+                      <exec>
+                        <arg>/run_consumer.sh</arg>
+                      </exec>
+                    </cmd>
+                    <assembly>
+                      <mode>dir</mode>
+                      <targetDir>/</targetDir>
+                      <inline>
+                        <fileSets>
+                          <fileSet>
+                            <directory>${project.basedir}/target</directory>
+                            <outputDirectory>/</outputDirectory>
+                            <includes>
+                              <include>${project.artifactId}-${project.version}.jar</include>
+                            </includes>
+                          </fileSet>
+                          <fileSet>
+                            <directory>${project.basedir}</directory>
+                            <outputDirectory>/</outputDirectory>
+                            <includes>
+                              <include>run_consumer.sh</include>
+                            </includes>
+                          </fileSet>
+                        </fileSets>
+                      </inline>
+                    </assembly>
+                  </build>
+                </image>
+              </images>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>build</goal>
+                  <goal>resource</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Paolo Patierno</name>
+      <email>ppatierno@live.com</email>
+      <organization>Red Hat</organization>
+      <organizationUrl>http://www.redhat.com</organizationUrl>
+    </developer>
+  </developers>
+
 </project>
