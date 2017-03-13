@@ -39,8 +39,8 @@ public class Sender {
   private static final String MESSAGING_HOST = "172.30.233.55";
   private static final int MESSAGING_PORT = 5672;
   private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final int PERIODIC_DELAY = 10;
-  private static final int PERIODIC_MAX_MESSAGE = 50;
+  private static final int DELAY = 10;
+  private static final int DEFAULT_COUNT = 50;
 
   private ProtonConnection connection;
   private ProtonSender sender;
@@ -72,20 +72,22 @@ public class Sender {
         this.sender = this.connection.createSender(KAFKA_TOPIC);
         this.sender.open();
 
-        vertx.setPeriodic(PERIODIC_DELAY, t -> {
+        vertx.setPeriodic(DELAY, t -> {
 
           if (this.connection.isDisconnected()) {
             vertx.cancelTimer(t);
           } else {
 
-            if (++count <= PERIODIC_MAX_MESSAGE) {
+            if (++count <= DEFAULT_COUNT) {
 
-              Message message = ProtonHelper.message(KAFKA_TOPIC, "Periodic message [" + count + "] from " + connection.getContainer());
+              Message message = ProtonHelper.message(KAFKA_TOPIC,
+                String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
+
               sender.send(message, delivery -> {
 
                 LOG.info("Message delivered {}", delivery.getRemoteState());
                 if (delivery.getRemoteState() instanceof Rejected) {
-                  Rejected rejected = (Rejected)delivery.getRemoteState();
+                  Rejected rejected = (Rejected) delivery.getRemoteState();
                   LOG.info("... but rejected {} {}", rejected.getError().getCondition(), rejected.getError().getDescription());
                 }
               });

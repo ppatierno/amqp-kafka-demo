@@ -19,10 +19,11 @@ package enmasse.jms;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jms.CompletionListener;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
-import javax.jms.DeliveryMode;
 import javax.jms.Destination;
+import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
@@ -37,8 +38,9 @@ public class Sender {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
 
+  private static final String FACTORY_LOOKUP = "myFactoryLookup";
+  private static final String KAFKA_TOPIC_LOOKUP = "myKafkaTopicLookup";
   private static final int DEFAULT_COUNT = 50;
-  private static final int DELIVERY_MODE = DeliveryMode.NON_PERSISTENT;
 
   public static void main(String[] args) {
 
@@ -48,10 +50,15 @@ public class Sender {
 
       Context context = new InitialContext();
 
-      ConnectionFactory factory = (ConnectionFactory) context.lookup("myFactoryLookup");
-      Destination topic = (Destination) context.lookup("myTopicLookup");
+      ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
+      Destination topic = (Destination) context.lookup(KAFKA_TOPIC_LOOKUP);
 
       Connection connection = factory.createConnection();
+      connection.setExceptionListener(e -> {
+        LOG.error("Connection exception, exiting", e);
+        e.printStackTrace();
+        System.exit(1);
+      });
       connection.start();
 
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -60,13 +67,42 @@ public class Sender {
 
       for (int i = 1; i <= count; i++) {
         TextMessage message = session.createTextMessage(String.format("Hello %d from JMS !", i));
-        messageProducer.send(message, DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE);
+        message.setJMSMessageID(String.valueOf(i));
+        messageProducer.send(message, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE,
+          new MyCompletionLister());
       }
 
+      System.in.read();
       connection.close();
 
     } catch (Exception e) {
+
+      LOG.error("Caught exception, exiting", e);
       e.printStackTrace();
+      System.exit(1);
+    }
+  }
+
+  /**
+   * Listener class for completion on sending messages
+   */
+  private static class MyCompletionLister implements CompletionListener {
+    @Override
+    public void onCompletion(Message message) {
+      try {
+        LOG.info("Message sent {}", message.getJMSMessageID());
+      } catch (JMSException jmsEx) {
+        jmsEx.printStackTrace();
+      }
+    }
+
+    @Override
+    public void onException(Message message, Exception e) {
+      try {
+      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
+      } catch (JMSException jmsEx) {
+        jmsEx.printStackTrace();
+      }
     }
   }
 }
