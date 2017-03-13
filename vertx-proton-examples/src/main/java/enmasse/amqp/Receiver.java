@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-
 package enmasse.amqp;
 
 import io.vertx.core.Vertx;
 import io.vertx.proton.ProtonClient;
 import io.vertx.proton.ProtonConnection;
-import io.vertx.proton.ProtonHelper;
-import io.vertx.proton.ProtonSender;
-import org.apache.qpid.proton.amqp.messaging.Rejected;
-import org.apache.qpid.proton.message.Message;
+import io.vertx.proton.ProtonReceiver;
+import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.messaging.AmqpValue;
+import org.apache.qpid.proton.amqp.messaging.Data;
+import org.apache.qpid.proton.amqp.messaging.Section;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,25 +32,23 @@ import java.io.IOException;
 /**
  * Created by ppatiern on 13/03/17.
  */
-public class Sender {
+public class Receiver {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Receiver.class);
 
   private static final String MESSAGING_HOST = "172.30.233.55";
   private static final int MESSAGING_PORT = 5672;
   private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final int DELAY = 10;
-  private static final int DEFAULT_COUNT = 50;
+  private static final String KAFKA_GROUP_ID = "mygroup";
 
   private ProtonConnection connection;
-  private ProtonSender sender;
-  private int count = 0;
+  private ProtonReceiver receiver;
 
   public static void main(String[] args) {
 
     Vertx vertx = Vertx.vertx();
 
-    Sender sender = new Sender();
+    Receiver sender = new Receiver();
     sender.run(vertx);
 
     vertx.close();
@@ -69,50 +67,38 @@ public class Sender {
 
         LOG.info("Connected as {}", this.connection.getContainer());
 
-        this.sender = this.connection.createSender(KAFKA_TOPIC);
-        this.sender.open();
+        this.receiver = this.connection.createReceiver(String.format("%s/group.id/%s", KAFKA_TOPIC, KAFKA_GROUP_ID));
 
-        vertx.setPeriodic(DELAY, t -> {
+        this.receiver.handler((delivery, message) -> {
 
-          if (this.connection.isDisconnected()) {
-            vertx.cancelTimer(t);
-          } else {
+          Section section = message.getBody();
 
-            if (++count <= DEFAULT_COUNT) {
-
-              Message message = ProtonHelper.message(KAFKA_TOPIC,
-                String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
-
-              sender.send(message, delivery -> {
-
-                LOG.info("Message delivered {}", delivery.getRemoteState());
-                if (delivery.getRemoteState() instanceof Rejected) {
-                  Rejected rejected = (Rejected) delivery.getRemoteState();
-                  LOG.info("... but rejected {} {}", rejected.getError().getCondition(), rejected.getError().getDescription());
-                }
-              });
-
-            } else {
-              vertx.cancelTimer(t);
-            }
+          if (section instanceof Data) {
+            Binary data = ((Data)section).getValue();
+            LOG.info("Message received {}", new String(data.getArray()));
+          } else if (section instanceof AmqpValue) {
+            String text = (String) ((AmqpValue)section).getValue();
+            LOG.info("Message received {}", text);
           }
 
-        });
+        }).open();
 
       } else {
         LOG.info("Error on connection {}", done.cause());
       }
+
     });
 
     try {
       System.in.read();
 
-      if (this.sender.isOpen())
-        this.sender.close();
+      if (this.receiver.isOpen())
+        this.receiver.close();
       this.connection.close();
 
     } catch (IOException e) {
       e.printStackTrace();
     }
+
   }
 }
