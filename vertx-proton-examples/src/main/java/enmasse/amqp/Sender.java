@@ -22,7 +22,10 @@ import io.vertx.proton.ProtonClient;
 import io.vertx.proton.ProtonConnection;
 import io.vertx.proton.ProtonHelper;
 import io.vertx.proton.ProtonSender;
+import org.apache.qpid.proton.amqp.messaging.Rejected;
 import org.apache.qpid.proton.message.Message;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
@@ -31,19 +34,29 @@ import java.io.IOException;
  */
 public class Sender {
 
+  private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
+
   private static final String MESSAGING_HOST = "172.30.233.55";
   private static final int MESSAGING_PORT = 5672;
   private static final String KAFKA_TOPIC = "kafka.mytopic";
   private static final int PERIODIC_DELAY = 10;
   private static final int PERIODIC_MAX_MESSAGE = 50;
 
-  private static ProtonConnection connection;
-  private static ProtonSender sender;
-  private static int count = 0;
+  private ProtonConnection connection;
+  private ProtonSender sender;
+  private int count = 0;
 
   public static void main(String[] args) {
 
     Vertx vertx = Vertx.vertx();
+
+    Sender sender = new Sender();
+    sender.run(vertx);
+
+    vertx.close();
+  }
+
+  private void run(Vertx vertx) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -51,27 +64,41 @@ public class Sender {
 
       if (done.succeeded()) {
 
-        connection = done.result();
-        connection.open();
+        this.connection = done.result();
+        this.connection.open();
 
-        sender = connection.createSender(KAFKA_TOPIC);
-        sender.open();
+        LOG.info("Connected as {}", this.connection.getContainer());
+
+        this.sender = this.connection.createSender(KAFKA_TOPIC);
+        this.sender.open();
 
         vertx.setPeriodic(PERIODIC_DELAY, t -> {
 
-          if (connection.isDisconnected()) {
+          if (this.connection.isDisconnected()) {
             vertx.cancelTimer(t);
           } else {
 
             if (++count <= PERIODIC_MAX_MESSAGE) {
+
               Message message = ProtonHelper.message(KAFKA_TOPIC, "Periodic message [" + count + "] from " + connection.getContainer());
-              sender.send(message);
+              sender.send(message, delivery -> {
+
+                LOG.info("Message delivered {}", delivery.getRemoteState());
+                if (delivery.getRemoteState() instanceof Rejected) {
+                  Rejected rejected = (Rejected)delivery.getRemoteState();
+                  LOG.info("... but rejected {} {}", rejected.getError().getCondition(), rejected.getError().getDescription());
+                }
+              });
+
             } else {
               vertx.cancelTimer(t);
             }
           }
 
         });
+
+      } else {
+        LOG.info("Error on connection {}", done.cause());
       }
     });
 
@@ -80,9 +107,7 @@ public class Sender {
 
       if (sender.isOpen())
         sender.close();
-
       connection.close();
-      vertx.close();
 
     } catch (IOException e) {
       e.printStackTrace();

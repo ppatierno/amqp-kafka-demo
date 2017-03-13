@@ -16,6 +16,9 @@
 
 package enmasse.jms;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.DeliveryMode;
@@ -32,7 +35,9 @@ import javax.naming.InitialContext;
  */
 public class Sender {
 
-  private static final int DEFAULT_COUNT = 10;
+  private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
+
+  private static final int DEFAULT_COUNT = 50;
   private static final int DELIVERY_MODE = DeliveryMode.NON_PERSISTENT;
 
   public static void main(String[] args) {
@@ -54,7 +59,7 @@ public class Sender {
       MessageProducer messageProducer = session.createProducer(topic);
 
       for (int i = 1; i <= count; i++) {
-        TextMessage message = session.createTextMessage("Hello from JMS !");
+        TextMessage message = session.createTextMessage(String.format("Hello %d from JMS !", i));
         messageProducer.send(message, DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE);
       }
 
