@@ -12,6 +12,7 @@
   <modules>
     <module>kafka-consumer-webui</module>
     <module>bom</module>
+    <module>qpid-jms-examples</module>
   </modules>
 
 </project>
