@@ -13,6 +13,7 @@
     <module>kafka-consumer-webui</module>
     <module>bom</module>
     <module>qpid-jms-examples</module>
+    <module>vertx-proton-examples</module>
   </modules>
 
 </project>

@@ -19,6 +19,7 @@
     <slf4j.version>1.7.24</slf4j.version>
     <kafka.version>0.10.0.1</kafka.version>
     <qpid-jms-client.version>0.20.0</qpid-jms-client.version>
+    <vertx-proton.version>3.4.0</vertx-proton.version>
   </properties>
 
   <dependencyManagement>
