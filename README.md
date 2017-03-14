@@ -90,3 +90,21 @@ The final deployment is visible using the OpenShift console.
 
 There are a bunch of components related to the messaging layer (for connecting through AMQP protocol), the administration, the MQTT protocol gateway and finally
 the AMQP - Kafka bridge.
+
+### Deploying the Kafka consumer Web UI
+
+The current demo project provide a simple application which starts a Kafka consumer inside the cluster in order to get messages from the Kafka cluster and showing them
+into a web page. This application needs to be build for the source code but even for the Docker image that will be deployed under the EnMasse infrastructure.
+From the _kafka-consumer-webui_, execute the folliwng command for building the application :
+
+    mvn package -Pbuild-docker-image
+
+After the build, an _enmasseproject/kafka-consumer-webui_ image is available in the local Docker registry and the OpenShift resources files in the target directory.
+
+For deploying the application :
+
+    oc create -f /<path-to-github-repo>/amqp-kafka-demo/kafka-consumer-webui/target/fabric8/kafka-consumer-webui-svc.yml
+    oc create -f /<path-to-github-repo>/amqp-kafka-demo/kafka-consumer-webui/target/fabric8/kafka-consumer-webui-deployment.yml
+    oc create -f /<path-to-github-repo>/amqp-kafka-demo/kafka-consumer-webui/target/fabric8/kafka-consumer-webui-route.yml
+
+![Apache Kafka Web UI on OpenShift](./images/kafka_webui_deployment.png)
