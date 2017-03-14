@@ -20,17 +20,17 @@ accessible registry for Docker and starting the cluster locally.
 
 First, create a new project :
 
-  oc new-project enmasse
+    oc new-project enmasse
 
 ### Deploying the Apache Kafka cluster
 
 The Apache Kafka cluster deployment uses persistent volumes for storing Zookeeper and Kafka brokers data (i.e. logs, consumer offsets, ...).
 For a local development, we can just use local drive for that but creating directory with read/write access permissions is needed.
 
-  mkdir /tmp/zookeeper
-  chmod 777 /tmp/zookeeper
-  mkdir /tmp/kafka
-  chmod 777 /tmp/kafka
+    mkdir /tmp/zookeeper
+    chmod 777 /tmp/zookeeper
+    mkdir /tmp/kafka
+    chmod 777 /tmp/kafka
 
 In this way we have two different directories that will be used as persistent volumes by the OpenShift resources YAML files.
 
@@ -66,3 +66,27 @@ Finally, the Kafka service and brokers deployment.
 Accessing the OpenShift console, the current deployment should be visible.
 
 ![Apache Kafka on OpenShift](./images/kafka_deployment.png)
+
+### Deploying EnMasse with Kafka support
+
+For deploying the EnMasse platform you can follow the instruction [here](https://github.com/EnMasseProject/openshift-configuration) but the main steps
+are described here for simplicity.
+
+Some permissions need to be granted before setting up the messaging service.
+
+The permissions can be setup with the following commands:
+
+    oc policy add-role-to-user view system:serviceaccount:$(oc project -q):default
+    oc policy add-role-to-user edit system:serviceaccount:$(oc project -q):deployer
+
+EnMasse is provided with different templates which are able to provision the components with/without SSL/TLS support for example or with/without Kafka support.
+For this demo, the template with Kafka support is needed and the entire EnMasse infrastracture can be deployed in the following way :
+
+    oc process -f https://raw.githubusercontent.com/EnMasseProject/openshift-configuration/master/generated/enmasse-template-with-kafka.yaml | oc create -f -
+
+The final deployment is visible using the OpenShift console.
+
+![EnMasse with Apache Kafka on OpenShift](./images/enmasse_kafka_deployment.png)
+
+There are a bunch of components related to the messaging layer (for connecting through AMQP protocol), the administration, the MQTT protocol gateway and finally
+the AMQP - Kafka bridge.
