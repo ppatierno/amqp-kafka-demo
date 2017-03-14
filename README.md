@@ -133,6 +133,6 @@ The application is provided through tht _qpid-jms-examples_ project that needs t
 
 After that, we can use it for sending messages :
 
-    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender
+    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -a 172.30.63.201 -t kafka.mytopic
 
 

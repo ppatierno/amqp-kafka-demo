@@ -91,7 +91,8 @@ public class Receiver {
 
   private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, String kafkaConsumerGroup) {
 
-    LOG.info("Starting receiver ...");
+    LOG.info("Starting receiver : connecting to [{}:{}] topic [{}] consumer group [{}]",
+      messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
 
     ProtonClient client = ProtonClient.create(vertx);
 

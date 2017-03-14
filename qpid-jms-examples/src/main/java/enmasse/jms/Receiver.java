@@ -16,6 +16,12 @@
 
 package enmasse.jms;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +35,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import java.util.Properties;
 
 /**
  * Created by ppatiern on 13/03/17.
@@ -37,16 +44,62 @@ public class Receiver {
 
   private static final Logger LOG = LoggerFactory.getLogger(Receiver.class);
 
+  private static final String MESSAGING_HOST = "localhost";
+  private static final int MESSAGING_PORT = 5672;
+  private static final String KAFKA_TOPIC = "kafka.mytopic";
+  private static final String KAFKA_GROUP_ID = "mygroup";
+
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
   private static final String KAFKA_TOPIC_LOOKUP = "myKafkaReceiveTopicLookup";
 
   public static void main(String[] args) {
 
-    LOG.info("Starting receiver ...");
+    Options options = new Options();
+    options.addOption("a", true, "Messaging host");
+    options.addOption("p", true, "Messaging port");
+    options.addOption("t", true, "Kafka topic");
+    options.addOption("g", true, "Kafka consumer group");
+    options.addOption("h", false, "Print this help");
+
+    CommandLineParser parser = new DefaultParser();
+
+    try {
+      CommandLine cmd = parser.parse(options, args);
+
+      if (cmd.hasOption("h")) {
+
+        HelpFormatter helpFormatter = new HelpFormatter();
+        helpFormatter.printHelp("Receiver", options);
+
+      } else {
+
+        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
+        String kafkaConsumerGroup = cmd.getOptionValue("g", KAFKA_GROUP_ID);
+
+        Receiver receiver = new Receiver();
+        receiver.run(messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+      }
+
+    } catch (ParseException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void run(String messagingHost, int messagingPort, String kafkaTopic, String kafkaConsumerGroup) {
+
+    LOG.info("Starting receiver : connecting to [{}:{}] topic [{}] consumer group [{}]",
+      messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
 
     try {
 
-      Context context = new InitialContext();
+      Properties props = new Properties();
+      props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+      props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
+      props.put("topic.myKafkaReceiveTopicLookup", String.format("%s/group.id/%s", kafkaTopic, kafkaConsumerGroup));
+
+      Context context = new InitialContext(props);
 
       ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
       Destination topic = (Destination) context.lookup(KAFKA_TOPIC_LOOKUP);

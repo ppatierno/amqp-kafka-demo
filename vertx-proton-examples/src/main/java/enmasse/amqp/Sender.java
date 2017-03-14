@@ -96,7 +96,8 @@ public class Sender {
 
   private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, int messagesCount, int messagesDelay) {
 
-    LOG.info("Starting sender ...");
+    LOG.info("Starting sender : connecting to [{}:{}] topic [{}] msgs count/delay [{}/{}]",
+      messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
 
     ProtonClient client = ProtonClient.create(vertx);
 
