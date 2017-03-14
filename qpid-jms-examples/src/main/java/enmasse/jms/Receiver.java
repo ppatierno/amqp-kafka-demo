@@ -42,6 +42,8 @@ public class Receiver {
 
   public static void main(String[] args) {
 
+    LOG.info("Starting receiver ...");
+
     try {
 
       Context context = new InitialContext();

@@ -22,6 +22,12 @@ import io.vertx.proton.ProtonClient;
 import io.vertx.proton.ProtonConnection;
 import io.vertx.proton.ProtonHelper;
 import io.vertx.proton.ProtonSender;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.qpid.proton.amqp.messaging.Rejected;
 import org.apache.qpid.proton.message.Message;
 import org.slf4j.Logger;
@@ -36,11 +42,11 @@ public class Sender {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
 
-  private static final String MESSAGING_HOST = "172.30.233.55";
+  private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
   private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final int DELAY = 10;
-  private static final int DEFAULT_COUNT = 50;
+  private static final int MESSAGES_DELAY = 10;
+  private static final int MESSAGES_COUNT = 50;
 
   private ProtonConnection connection;
   private ProtonSender sender;
@@ -48,19 +54,53 @@ public class Sender {
 
   public static void main(String[] args) {
 
-    Vertx vertx = Vertx.vertx();
+    Options options = new Options();
+    options.addOption("a", true, "Messaging host");
+    options.addOption("p", true, "Messaging port");
+    options.addOption("t", true, "Kafka topic");
+    options.addOption("c", true, "Number of messages to send");
+    options.addOption("d", true, "Delay between messages");
+    options.addOption("h", false, "Print this help");
 
-    Sender sender = new Sender();
-    sender.run(vertx);
+    CommandLineParser parser = new DefaultParser();
 
-    vertx.close();
+    try {
+      CommandLine cmd = parser.parse(options, args);
+
+      if (cmd.hasOption("h")) {
+
+        HelpFormatter helpFormatter = new HelpFormatter();
+        helpFormatter.printHelp("Sender", options);
+
+      } else {
+
+        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
+        int messagesCount = Integer.parseInt(cmd.getOptionValue("c", String.valueOf(MESSAGES_COUNT)));
+        int messagesDelay = Integer.parseInt(cmd.getOptionValue("d", String.valueOf(MESSAGES_DELAY)));
+
+        Vertx vertx = Vertx.vertx();
+
+        Sender sender = new Sender();
+        sender.run(vertx, messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+
+        vertx.close();
+      }
+
+    } catch (ParseException e) {
+      e.printStackTrace();
+    }
+
   }
 
-  private void run(Vertx vertx) {
+  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, int messagesDelay, int messagesCount) {
+
+    LOG.info("Starting sender ...");
 
     ProtonClient client = ProtonClient.create(vertx);
 
-    client.connect(MESSAGING_HOST, MESSAGING_PORT, done -> {
+    client.connect(messagingHost, messagingPort, done -> {
 
       if (done.succeeded()) {
 
@@ -69,16 +109,16 @@ public class Sender {
 
         LOG.info("Connected as {}", this.connection.getContainer());
 
-        this.sender = this.connection.createSender(KAFKA_TOPIC);
+        this.sender = this.connection.createSender(kafkaTopic);
         this.sender.open();
 
-        vertx.setPeriodic(DELAY, t -> {
+        vertx.setPeriodic(messagesDelay, t -> {
 
           if (this.connection.isDisconnected()) {
             vertx.cancelTimer(t);
           } else {
 
-            if (++count <= DEFAULT_COUNT) {
+            if (++count <= messagesCount) {
 
               Message message = ProtonHelper.message(KAFKA_TOPIC,
                 String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));

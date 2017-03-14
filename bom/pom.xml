@@ -20,6 +20,7 @@
     <kafka.version>0.10.0.1</kafka.version>
     <qpid-jms-client.version>0.20.0</qpid-jms-client.version>
     <vertx-proton.version>3.4.0</vertx-proton.version>
+    <commons-cli.version>1.4</commons-cli.version>
   </properties>
 
   <dependencyManagement>

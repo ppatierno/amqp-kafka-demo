@@ -20,6 +20,12 @@ import io.vertx.core.Vertx;
 import io.vertx.proton.ProtonClient;
 import io.vertx.proton.ProtonConnection;
 import io.vertx.proton.ProtonReceiver;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.qpid.proton.amqp.Binary;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Data;
@@ -36,7 +42,7 @@ public class Receiver {
 
   private static final Logger LOG = LoggerFactory.getLogger(Receiver.class);
 
-  private static final String MESSAGING_HOST = "172.30.233.55";
+  private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
   private static final String KAFKA_TOPIC = "kafka.mytopic";
   private static final String KAFKA_GROUP_ID = "mygroup";
@@ -46,19 +52,50 @@ public class Receiver {
 
   public static void main(String[] args) {
 
-    Vertx vertx = Vertx.vertx();
+    Options options = new Options();
+    options.addOption("a", true, "Messaging host");
+    options.addOption("p", true, "Messaging port");
+    options.addOption("t", true, "Kafka topic");
+    options.addOption("g", true, "Kafka consumer group");
+    options.addOption("h", false, "Print this help");
 
-    Receiver sender = new Receiver();
-    sender.run(vertx);
+    CommandLineParser parser = new DefaultParser();
 
-    vertx.close();
+    try {
+      CommandLine cmd = parser.parse(options, args);
+
+      if (cmd.hasOption("h")) {
+
+        HelpFormatter helpFormatter = new HelpFormatter();
+        helpFormatter.printHelp("Receiver", options);
+
+      } else {
+
+        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
+        String kafkaConsumerGroup = cmd.getOptionValue("g", KAFKA_GROUP_ID);
+
+        Vertx vertx = Vertx.vertx();
+
+        Receiver receiver = new Receiver();
+        receiver.run(vertx, messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+
+        vertx.close();
+      }
+
+    } catch (ParseException e) {
+      e.printStackTrace();
+    }
   }
 
-  private void run(Vertx vertx) {
+  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, String kafkaConsumerGroup) {
+
+    LOG.info("Starting receiver ...");
 
     ProtonClient client = ProtonClient.create(vertx);
 
-    client.connect(MESSAGING_HOST, MESSAGING_PORT, done -> {
+    client.connect(messagingHost, messagingPort, done -> {
 
       if (done.succeeded()) {
 
@@ -67,7 +104,7 @@ public class Receiver {
 
         LOG.info("Connected as {}", this.connection.getContainer());
 
-        this.receiver = this.connection.createReceiver(String.format("%s/group.id/%s", KAFKA_TOPIC, KAFKA_GROUP_ID));
+        this.receiver = this.connection.createReceiver(String.format("%s/group.id/%s", kafkaTopic, kafkaConsumerGroup));
 
         this.receiver.handler((delivery, message) -> {
 

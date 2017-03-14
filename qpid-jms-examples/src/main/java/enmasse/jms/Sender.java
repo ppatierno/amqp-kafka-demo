@@ -44,6 +44,8 @@ public class Sender {
 
   public static void main(String[] args) {
 
+    LOG.info("Starting sender ...");
+
     int count = DEFAULT_COUNT;
 
     try {
