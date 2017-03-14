@@ -94,7 +94,7 @@ public class Sender {
 
   }
 
-  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, int messagesDelay, int messagesCount) {
+  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, int messagesCount, int messagesDelay) {
 
     LOG.info("Starting sender ...");
 
