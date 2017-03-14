@@ -37,31 +37,31 @@ In this way we have two different directories that will be used as persistent vo
 After making available above accessible directories, the persistent volumes need to be deployed by OpenShift administrator. In this case you can just login
 as system admin on your local OpenShift cluster for doing that.
 
-  oc login -u system:admin
+    oc login -u system:admin
 
 The persistent volumes can be deployed in the following way :
 
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-volume.yaml
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-volume.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-volume.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-volume.yaml
 
 After that you can return to be a "developer" user.
 
-  oc login -u developer
+    oc login -u developer
 
 In order to complete the persistent volumes actions, the claims need to be deployed.
 
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-volume-claim.yaml
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-volume-claim.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-volume-claim.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-volume-claim.yaml
 
 After that, the Zookeeper service and deployment can be create.
 
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-service.yaml
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/zookeeper.yaml
 
 Finally, the Kafka service and brokers deployment.
 
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-service.yaml
-  oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/resources/kafka.yaml
 
 Accessing the OpenShift console, the current deployment should be visible.
 
