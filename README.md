@@ -14,7 +14,20 @@ For this demo, you need the OpenShift client tools and for that you can download
 Follow [this guide](https://github.com/openshift/origin/blob/master/docs/cluster_up_down.md) for setting up a local developer instance of OpenShift, for having an
 accessible registry for Docker and starting the cluster locally.
 
-## Setting up AMQP - Kafka
+## One "script" deployment
+
+In order to deploy this demo on OpenShift, a bunch of steps are needed as explained in the next chapter. If you want to avoid to do them, a "one click" deployment
+script is available in the repository.
+After having the OpenShift cluster up and running and the client tools in the PATH, the deployment can be executed launching the following bash script
+(from the "scripts" directory)
+
+    bash openshift_deploy.sh
+
+When you want to shutdown the demo instance, there is the following useful script :
+
+    bash openshift_undeploy.sh
+
+## Step by Step deployment
 
 ### Creating project
 
@@ -76,8 +89,9 @@ Some permissions need to be granted before setting up the messaging service.
 
 The permissions can be setup with the following commands:
 
+    oc create sa enmasse-service-account -n $(oc project -q)
     oc policy add-role-to-user view system:serviceaccount:$(oc project -q):default
-    oc policy add-role-to-user edit system:serviceaccount:$(oc project -q):deployer
+    oc policy add-role-to-user edit system:serviceaccount:$(oc project -q):enmasse-service-account
 
 EnMasse is provided with different templates which are able to provision the components with/without SSL/TLS support for example or with/without Kafka support.
 For this demo, the template with Kafka support is needed and the entire EnMasse infrastracture can be deployed in the following way :
