@@ -20,6 +20,22 @@ spec:
         - containerPort: 8080
           protocol: TCP
           name: http
+        env:
+        - name: KAFKA_CONSUMER_GROUPID
+          valueFrom:
+            configMapKeyRef:
+              name: ${project.artifactId}
+              key: groupid
+        - name: KAFKA_CONSUMER_TOPIC
+          valueFrom:
+            configMapKeyRef:
+              name: ${project.artifactId}
+              key: topic
+        - name: KAFKA_CONSUMER_AUTO_OFFSET_RESET
+          valueFrom:
+            configMapKeyRef:
+              name: ${project.artifactId}
+              key: auto.offset.reset
         livenessProbe:
           tcpSocket:
             port: http

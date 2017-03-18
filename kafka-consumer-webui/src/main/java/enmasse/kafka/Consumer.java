@@ -39,11 +39,23 @@ public class Consumer {
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
 
   private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
+  private static final String KAFKA_CONSUMER_GROUPID = "mygroup";
+  private static final String KAFKA_CONSUMER_TOPIC = "kafka.mytopic";
+  private static final String KAFKA_CONSUMER_AUTO_OFFSET_RESET = "earliest";
 
   public static void main(String[] args) {
 
-    String kafkaBootstrapServers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
-    LOG.info("KAFKA_BOOTSTRAP_SERVERS = {}", kafkaBootstrapServers);
+    String bootstrapServers = System.getenv("KAFKA_BOOTSTRAP_SERVERS");
+    LOG.info("KAFKA_BOOTSTRAP_SERVERS = {}", bootstrapServers);
+
+    String groupId = System.getenv("KAFKA_CONSUMER_GROUPID");
+    LOG.info("KAFKA_CONSUMER_GROUPID = {}", groupId);
+
+    String topic = System.getenv("KAFKA_CONSUMER_TOPIC");
+    LOG.info("KAFKA_CONSUMER_TOPIC = {}", topic);
+
+    String autoOffsetReset = System.getenv("KAFKA_CONSUMER_AUTO_OFFSET_RESET");
+    LOG.info("KAFKA_CONSUMER_AUTO_OFFSET_RESET = {}", autoOffsetReset);
 
     Vertx vertx = Vertx.vertx();
 
@@ -67,9 +79,9 @@ public class Consumer {
       });
 
     Properties config = new Properties();
-    config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaBootstrapServers);
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, "mygroup");
-    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    config.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+    config.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
 
     KafkaConsumer<String, String> consumer = KafkaConsumer.create(vertx, config, String.class, String.class);
     consumer.handler(record -> {
@@ -77,6 +89,6 @@ public class Consumer {
         record.topic(), record.partition(), record.offset(), record.value());
       vertx.eventBus().publish("dashboard", record.value());
     });
-    consumer.subscribe("kafka.mytopic");
+    consumer.subscribe(topic);
   }
 }

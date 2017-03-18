@@ -121,7 +121,7 @@ public class Sender {
 
             if (++count <= messagesCount) {
 
-              Message message = ProtonHelper.message(KAFKA_TOPIC,
+              Message message = ProtonHelper.message(kafkaTopic,
                 String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
 
               sender.send(message, delivery -> {
