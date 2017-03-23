@@ -37,13 +37,18 @@ First, create a new project :
 
 ### Deploying the Apache Kafka cluster
 
-The Apache Kafka cluster deployment uses persistent volumes for storing Zookeeper and Kafka brokers data (i.e. logs, consumer offsets, ...).
+The Apache Kafka cluster deployment is based on Stateful Sets and, for demo purpose, it's just made of one Zookeeper instance and three Apache Kafka replicas.
+Furthermore, it uses persistent volumes for storing Zookeeper and Kafka brokers data (i.e. logs, consumer offsets, ...).
 For a local development, we can just use local drive for that but creating directory with read/write access permissions is needed.
 
-    mkdir /tmp/zookeeper
-    chmod 777 /tmp/zookeeper
-    mkdir /tmp/kafka
-    chmod 777 /tmp/kafka
+    mkdir /tmp/kafka-a
+    chmod 777 /tmp/kafka-a
+    mkdir /tmp/kafka-b
+    chmod 777 /tmp/kafka-b
+    mkdir /tmp/kafka-c
+    chmod 777 /tmp/kafka-c
+    mkdir /tmp/kafka-d
+    chmod 777 /tmp/kafka-d
 
 In this way we have two different directories that will be used as persistent volumes by the OpenShift resources YAML files.
 

@@ -5,40 +5,52 @@ echo DEPLOYING ENMASSE AND KAFKA ON OPENSHIFT
 # creating new project
 oc new-project enmasse --description="Messaging as a Service" --display-name="EnMasse"
 
-# creating the directory for Zookeeper persistent volume
-if [ ! -d /tmp/zookeeper ]; then
-    mkdir /tmp/zookeeper
-    chmod 777 /tmp/zookeeper
+# creating the directories for Kafka/Zookeeper persistent volumes
+if [ ! -d /tmp/kafka-a ]; then
+    mkdir /tmp/kafka-a
+    chmod 777 /tmp/kafka-a
 else
-    echo /tmp/zookeeper already exists !
+    echo /tmp/kafka-a already exists !
 fi
 
-# creating the directory for Kafka persistent volume
-if [ ! -d /tmp/kafka ]; then
-    mkdir /tmp/kafka
-    chmod 777 /tmp/kafka
+if [ ! -d /tmp/kafka-b ]; then
+    mkdir /tmp/kafka-b
+    chmod 777 /tmp/kafka-b
 else
-    echo /tmp/kafka already exists !
+    echo /tmp/kafka-b already exists !
+fi
+
+if [ ! -d /tmp/kafka-c ]; then
+    mkdir /tmp/kafka-c
+    chmod 777 /tmp/kafka-c
+else
+    echo /tmp/kafka-c already exists !
+fi
+
+if [ ! -d /tmp/kafka-d ]; then
+    mkdir /tmp/kafka-d
+    chmod 777 /tmp/kafka-d
+else
+    echo /tmp/kafka-d already exists !
 fi
 
 # creating Zookeeper and Kafka persistent volume (admin needed)
 oc login -u system:admin
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-volume.yaml
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-volume.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/cluster-volumes.yaml
 
 # starting to deploy EnMasse + Kafka (developer user)
 oc login -u developer
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-volume-claim.yaml
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-volume-claim.yaml
 
 echo Deploying Zookeeper ...
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-service.yaml
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper-headless-service.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper-service.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper.yaml
 echo ... done
 
 echo Deploying Apache Kafka ...
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-service.yaml
-oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka-headless-service.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka-service.yaml
+oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka.yaml
 echo ... done
 
 echo Deploying EnMasse with Kafka support ...
