@@ -155,3 +155,14 @@ The application is provided through tht _qpid-jms-examples_ project that needs t
 After that, we can use it for sending messages :
 
     java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -a 172.30.63.201 -t kafka.mytopic
+
+## Using MQTT protocol
+
+Thanks to an MQTT gateway, the EnMasse project supports the MQTT protocol and all its related features; the same features (i.e. last will testament, ...) are available on
+AMQP as well. Related to this demo, it means that using an MQTT client, it's possible to publish messages to an Apache Kafka topic. 
+
+> The MQTT gateway is accessible to a different address from the AMQP one
+
+Using the simple `mosquitto_pub` application, it's possible to have an MQTT to Apache Kafka flow in the following way :
+
+    mosquitto_pub -h 172.30.192.59 -t kafka.mytopic -q 1 -m "Hello from MQTT"
