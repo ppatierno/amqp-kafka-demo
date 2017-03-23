@@ -96,7 +96,7 @@ The permissions can be setup with the following commands:
 EnMasse is provided with different templates which are able to provision the components with/without SSL/TLS support for example or with/without Kafka support.
 For this demo, the template with Kafka support is needed and the entire EnMasse infrastracture can be deployed in the following way :
 
-    oc process -f https://raw.githubusercontent.com/EnMasseProject/openshift-configuration/master/generated/enmasse-template-with-kafka.yaml | oc create -f -
+    oc process -f https://raw.githubusercontent.com/EnMasseProject/enmasse/master/generated/enmasse-template-with-kafka.yaml | oc create -f -
 
 The final deployment is visible using the OpenShift console.
 
@@ -155,5 +155,3 @@ The application is provided through tht _qpid-jms-examples_ project that needs t
 After that, we can use it for sending messages :
 
     java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -a 172.30.63.201 -t kafka.mytopic
-
-
