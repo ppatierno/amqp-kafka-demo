@@ -27,6 +27,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.messaging.Accepted;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.apache.qpid.proton.amqp.messaging.Section;
@@ -117,7 +118,11 @@ public class Receiver {
           } else if (section instanceof AmqpValue) {
             String text = (String) ((AmqpValue)section).getValue();
             LOG.info("Message received {}", text);
+          } else {
+            LOG.info("Message received but can't decode it");
           }
+
+          delivery.disposition(Accepted.getInstance(), true);
 
         }).open();
 
