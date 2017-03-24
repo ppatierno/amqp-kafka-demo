@@ -25,13 +25,12 @@ import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jms.CompletionListener;
+import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import javax.jms.Message;
-import javax.jms.MessageProducer;
+import javax.jms.MessageConsumer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.Context;
@@ -39,52 +38,45 @@ import javax.naming.InitialContext;
 import java.util.Properties;
 
 /**
- * Created by ppatiern on 13/03/17.
+ * Created by ppatiern on 24/03/17.
  */
-public class Sender {
+public class FilteringReceiver {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FilteringReceiver.class);
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final int MESSAGES_DELAY = 10;
-  private static final int MESSAGES_COUNT = 50;
+  private static final String QUEUE = "myqueue";
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
-  private static final String KAFKA_TOPIC_LOOKUP = "myKafkaTopicLookup";
+  private static final String QUEUE_LOOKUP = "myQueueLookup";
 
   public static void main(String[] args) {
 
     Options options = new Options();
     options.addOption("a", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("t", true, "Kafka topic");
-    options.addOption("c", true, "Number of messages to send");
-    options.addOption("d", true, "Delay between messages");
+    options.addOption("q", true, "Queue");
     options.addOption("h", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
 
     try {
-
       CommandLine cmd = parser.parse(options, args);
 
       if (cmd.hasOption("h")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
-        helpFormatter.printHelp("Sender", options);
+        helpFormatter.printHelp("Receiver", options);
 
       } else {
 
         String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
-        int messagesCount = Integer.parseInt(cmd.getOptionValue("c", String.valueOf(MESSAGES_COUNT)));
-        int messagesDelay = Integer.parseInt(cmd.getOptionValue("d", String.valueOf(MESSAGES_DELAY)));
+        String queue = cmd.getOptionValue("t", QUEUE);
 
-        Sender sender = new Sender();
-        sender.run(messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+        FilteringReceiver receiver = new FilteringReceiver();
+        receiver.run(messagingHost, messagingPort, queue);
       }
 
     } catch (ParseException e) {
@@ -92,22 +84,22 @@ public class Sender {
     }
   }
 
-  private void run(String messagingHost, int messagingPort, String kafkaTopic, int messagesCount, int messagesDelay) {
+  private void run(String messagingHost, int messagingPort, String queue) {
 
-    LOG.info("Starting sender : connecting to [{}:{}] topic [{}] msgs count/delay [{}/{}]",
-      messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+    LOG.info("Starting receiver : connecting to [{}:{}] queue [{}]",
+      messagingHost, messagingPort, queue);
 
     try {
 
       Properties props = new Properties();
       props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
       props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
-      props.put("topic.myKafkaTopicLookup", kafkaTopic);
+      props.put("queue.myQueueLookup", queue);
 
       Context context = new InitialContext(props);
 
       ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
-      Destination topic = (Destination) context.lookup(KAFKA_TOPIC_LOOKUP);
+      Destination destination = (Destination) context.lookup(QUEUE_LOOKUP);
 
       Connection connection = factory.createConnection();
       connection.setExceptionListener(e -> {
@@ -119,19 +111,34 @@ public class Sender {
 
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MessageProducer messageProducer = session.createProducer(topic);
+      MessageConsumer messageConsumer = session.createConsumer(destination, "count % 2 = 0");
 
-      for (int i = 1; i <= messagesCount; i++) {
-        TextMessage message = session.createTextMessage(String.format("Hello %d from JMS !", i));
-        message.setIntProperty("count", i);
-        message.setJMSMessageID(String.valueOf(i));
-        messageProducer.send(message, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE,
-          new MyCompletionLister());
-        Thread.sleep(messagesDelay);
-      }
+      messageConsumer.setMessageListener(message -> {
+
+        try {
+
+          if (message instanceof BytesMessage) {
+
+            BytesMessage bytesMessage = (BytesMessage) message;
+            byte[] data = new byte[(int) bytesMessage.getBodyLength()];
+            bytesMessage.readBytes(data);
+            LOG.info("Message received {}", new String(data));
+
+          } else if (message instanceof TextMessage) {
+
+            TextMessage textMessage = (TextMessage) message;
+            String text = textMessage.getText();
+            LOG.info("Message received {}", text);
+          }
+
+        } catch (JMSException jmsEx) {
+          jmsEx.printStackTrace();
+        }
+
+      });
 
       System.in.read();
-      messageProducer.close();
+      messageConsumer.close();
       session.close();
       connection.close();
 
@@ -140,29 +147,6 @@ public class Sender {
       LOG.error("Caught exception, exiting", e);
       e.printStackTrace();
       System.exit(1);
-    }
-  }
-
-  /**
-   * Listener class for completion on sending messages
-   */
-  private class MyCompletionLister implements CompletionListener {
-    @Override
-    public void onCompletion(Message message) {
-      try {
-        LOG.info("Message sent {}", message.getJMSMessageID());
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onException(Message message, Exception e) {
-      try {
-      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
     }
   }
 }

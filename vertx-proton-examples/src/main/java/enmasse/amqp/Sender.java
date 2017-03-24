@@ -28,12 +28,16 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.qpid.proton.amqp.Symbol;
+import org.apache.qpid.proton.amqp.messaging.ApplicationProperties;
 import org.apache.qpid.proton.amqp.messaging.Rejected;
 import org.apache.qpid.proton.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ppatiern on 13/03/17.
@@ -123,6 +127,11 @@ public class Sender {
 
               Message message = ProtonHelper.message(kafkaTopic,
                 String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
+
+              Map<Symbol, Object> map = new HashMap<>();
+              map.put(Symbol.getSymbol("count"), count);
+              ApplicationProperties applicationProperties = new ApplicationProperties(map);
+              message.setApplicationProperties(applicationProperties);
 
               sender.send(message, delivery -> {
 
