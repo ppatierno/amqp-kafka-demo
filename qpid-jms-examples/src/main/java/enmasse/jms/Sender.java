@@ -121,7 +121,7 @@ public class Sender {
       Context context = new InitialContext(props);
 
       ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
-      Destination topic = (Destination) context.lookup(DESTINATION_LOOKUP);
+      Destination destination = (Destination) context.lookup(DESTINATION_LOOKUP);
 
       Connection connection = factory.createConnection();
       connection.setExceptionListener(e -> {
@@ -133,7 +133,7 @@ public class Sender {
 
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MessageProducer messageProducer = session.createProducer(topic);
+      MessageProducer messageProducer = session.createProducer(destination);
 
       for (int i = 1; i <= messagesCount; i++) {
         TextMessage message = session.createTextMessage(String.format("Hello %d from JMS !", i));
