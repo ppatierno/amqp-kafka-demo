@@ -59,31 +59,27 @@ as system admin on your local OpenShift cluster for doing that.
 
 The persistent volumes can be deployed in the following way :
 
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-volume.yaml
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-volume.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/cluster-volumes.yaml
 
 After that you can return to be a "developer" user.
 
     oc login -u developer
 
-In order to complete the persistent volumes actions, the claims need to be deployed.
+Then, the Zookeeper services and stateful sets can be created.
 
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-volume-claim.yaml
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-volume-claim.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper-headless-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/zookeeper.yaml
 
-After that, the Zookeeper service and deployment can be create.
+Finally, the Kafka services and broker stateful sets.
 
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper-service.yaml
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/zookeeper.yaml
-
-Finally, the Kafka service and brokers deployment.
-
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka-service.yaml
-    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-persisted/resources/kafka.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka-headless-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka-service.yaml
+    oc create -f https://raw.githubusercontent.com/EnMasseProject/barnabas/master/kafka-statefulsets/resources/kafka.yaml
 
 Accessing the OpenShift console, the current deployment should be visible.
 
-![Apache Kafka on OpenShift](./images/kafka_deployment.png)
+![Apache Kafka on OpenShift](./images/kafka_statefulsets.png)
 
 ### Deploying EnMasse with Kafka support
 
