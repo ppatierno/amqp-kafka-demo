@@ -48,6 +48,13 @@ import java.io.IOException;
  */
 public class Client {
 
+  /*
+  This request/reply example goes through the router using direct messaging so an address needs to be added to the
+  router configuration. If it's running, the qdmanege tool can be used in the folliwing way :
+
+      qdmanage -b 172.30.176.73 create type=address name=request prefix=request distribution=balanced
+  */
+
   private static final Logger LOG = LoggerFactory.getLogger(Client.class);
 
   private static final String MESSAGING_HOST = "localhost";

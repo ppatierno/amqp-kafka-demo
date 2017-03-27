@@ -35,7 +35,6 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
-import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -44,7 +43,7 @@ import java.util.Properties;
 /**
  * Created by ppatiern on 13/03/17.
  */
-public class Server {
+public class Server implements MessageListener, CompletionListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
@@ -115,10 +114,12 @@ public class Server {
 
       this.session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
+      // create a producer for sending response
       this.replyProducer = this.session.createProducer(null);
 
+      // create consumer on the requests queue
       MessageConsumer requestConsumer = this.session.createConsumer(requestQueue);
-      requestConsumer.setMessageListener(new MyMessageListener());
+      requestConsumer.setMessageListener(this);
 
       System.in.read();
       connection.close();
@@ -131,24 +132,42 @@ public class Server {
     }
   }
 
-  private class MyMessageListener implements MessageListener {
+  @Override
+  public void onMessage(Message request) {
 
-    @Override
-    public void onMessage(Message request) {
+    try {
+      LOG.info("Received request '{}'", ((TextMessage) request).getText());
 
-      try {
-        LOG.info("Received request '{}'", ((TextMessage) request).getText());
+      // get the replyTo from the request as response destination
+      Destination replyDestination = request.getJMSReplyTo();
 
-        Destination replyDestination = request.getJMSReplyTo();
+      // create and send response
+      TextMessage replyMessage = session.createTextMessage("MyResponse");
 
-        TextMessage replyMessage = session.createTextMessage("MyResponse");
+      replyProducer.send(replyDestination, replyMessage, this);
 
-        replyProducer.send(replyDestination, replyMessage);
+    } catch (JMSException e) {
+      e.printStackTrace();
+    }
 
-      } catch (JMSException e) {
-        e.printStackTrace();
-      }
+  }
 
+  @Override
+  public void onCompletion(Message request) {
+    try {
+      LOG.info("Response sent '{}'", ((TextMessage)request).getText());
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
     }
   }
+
+  @Override
+  public void onException(Message message, Exception e) {
+    try {
+      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
+    }
+  }
+
 }

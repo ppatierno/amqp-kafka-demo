@@ -198,3 +198,49 @@ AMQP as well. Related to this demo, it means that using an MQTT client, it's pos
 Using the simple `mosquitto_pub` application, it's possible to have an MQTT to Apache Kafka flow in the following way :
 
     mosquitto_pub -h 172.30.192.59 -t kafka.mytopic -q 1 -m "Hello from MQTT"
+    
+## Request/Reply
+
+One of the pattern that is difficult to support using Apache Kafka is the well know _request/reply_ where a client (requestor) sends a request message to a server (responder)
+which processes this request and sends a response back to the client.
+This demo repository provides a couple of examples of implementing this pattern both with JMS and Vert.x Proton (using raw AMQP) but in two different ways :
+
+* the Vert.x Proton implementation goes through the router with direct messaging. The server opens a connection to the router and attaches a link on a "request" address
+for receiving request messages from the client. The client opens a connection to the router attaching two links : the first one on the "request" address for sending
+the request message to the server and another "dynamic" one for receiving the response from the server. It's up to the router to create a dynamic (temporary) address.
+* the JMS implementation uses a couple of queues on a broker. A queue is used by the client for sending the request message to the server and a temporary queue used by the client
+for receiving the response from the server
+
+### AMQP Vert.x Proton
+
+Because this example uses direct messaging through the router, it's needed to configure the "request" address on the router itself.
+In order to do that, without modifying the static router configuration file (restarting the router), it's possible to use the _qdmanage_ tool in the following way :
+
+    qdmanage -b 172.30.176.73 create type=address name=request prefix=request distribution=balanced
+    
+Where the provided address is the messaging service address inside the OpenShift cluster.
+
+For starting the client side :
+
+    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Client -h 172.30.63.201 -p 5672
+
+The provided address and port are the messaging service ones inside the OpenShift cluster.
+For starting the server side :
+
+    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Client -h 172.30.63.201 -p 55673
+
+The provided address and port are the messaging service address and the internal port for connected services inside the OpenShift cluster.
+
+### Qpid JMS
+
+For starting the client side :
+
+    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Client -h 172.30.63.201 -p 5672
+
+For starting the server side :
+
+    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Server -h 172.30.63.201 -p 5672
+    
+The provided address and port are the messaging service ones inside the OpenShift cluster.
+    
+

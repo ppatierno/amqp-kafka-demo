@@ -30,7 +30,9 @@ import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
+import javax.jms.Message;
 import javax.jms.MessageConsumer;
+import javax.jms.MessageListener;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.Context;
@@ -40,7 +42,7 @@ import java.util.Properties;
 /**
  * Created by ppatiern on 13/03/17.
  */
-public class Receiver {
+public class Receiver implements MessageListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(Receiver.class);
 
@@ -127,30 +129,7 @@ public class Receiver {
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
       MessageConsumer messageConsumer = session.createConsumer(destination, filter);
-
-      messageConsumer.setMessageListener(message -> {
-
-        try {
-
-          if (message instanceof BytesMessage) {
-
-            BytesMessage bytesMessage = (BytesMessage) message;
-            byte[] data = new byte[(int) bytesMessage.getBodyLength()];
-            bytesMessage.readBytes(data);
-            LOG.info("Message received {}", new String(data));
-
-          } else if (message instanceof TextMessage) {
-
-            TextMessage textMessage = (TextMessage) message;
-            String text = textMessage.getText();
-            LOG.info("Message received {}", text);
-          }
-
-        } catch (JMSException jmsEx) {
-          jmsEx.printStackTrace();
-        }
-
-      });
+      messageConsumer.setMessageListener(this);
 
       System.in.read();
       messageConsumer.close();
@@ -162,6 +141,30 @@ public class Receiver {
       LOG.error("Caught exception, exiting", e);
       e.printStackTrace();
       System.exit(1);
+    }
+  }
+
+  @Override
+  public void onMessage(Message message) {
+
+    try {
+
+      if (message instanceof BytesMessage) {
+
+        BytesMessage bytesMessage = (BytesMessage) message;
+        byte[] data = new byte[(int) bytesMessage.getBodyLength()];
+        bytesMessage.readBytes(data);
+        LOG.info("Message received {}", new String(data));
+
+      } else if (message instanceof TextMessage) {
+
+        TextMessage textMessage = (TextMessage) message;
+        String text = textMessage.getText();
+        LOG.info("Message received {}", text);
+      }
+
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
     }
   }
 }

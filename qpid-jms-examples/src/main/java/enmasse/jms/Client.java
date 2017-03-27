@@ -43,7 +43,7 @@ import java.util.Properties;
 /**
  * Created by ppatiern on 13/03/17.
  */
-public class Client {
+public class Client implements CompletionListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(Client.class);
 
@@ -111,18 +111,22 @@ public class Client {
 
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
+      // producer on the queue for sending the request
       MessageProducer messageProducer = session.createProducer(requestQueue);
 
+      // create temporary queue for receiving the response
       TemporaryQueue replyQueue = session.createTemporaryQueue();
 
       MessageConsumer replyConsumer = session.createConsumer(replyQueue);
 
+      // create and send request with replyTo set to the temporary queue
       TextMessage request = session.createTextMessage("MyRequest");
       request.setJMSReplyTo(replyQueue);
 
       messageProducer.send(request, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE,
-        new MyCompletionLister());
+        this);
 
+      // consume the response
       TextMessage replyMessageReceived = (TextMessage) replyConsumer.receive();
 
       LOG.info("Received response: " + replyMessageReceived.getText());
@@ -142,26 +146,22 @@ public class Client {
     }
   }
 
-  /**
-   * Listener class for completion on sending messages
-   */
-  private class MyCompletionLister implements CompletionListener {
-    @Override
-    public void onCompletion(Message request) {
-      try {
-        LOG.info("Request sent '{}'", ((TextMessage)request).getText());
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onException(Message message, Exception e) {
-      try {
-      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
+  @Override
+  public void onCompletion(Message request) {
+    try {
+      LOG.info("Request sent '{}'", ((TextMessage)request).getText());
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
     }
   }
+
+  @Override
+  public void onException(Message message, Exception e) {
+    try {
+      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
+    }
+  }
+
 }

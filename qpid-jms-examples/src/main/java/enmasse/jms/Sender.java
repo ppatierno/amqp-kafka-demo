@@ -41,7 +41,7 @@ import java.util.Properties;
 /**
  * Created by ppatiern on 13/03/17.
  */
-public class Sender {
+public class Sender implements CompletionListener {
 
   private static final Logger LOG = LoggerFactory.getLogger(Sender.class);
 
@@ -140,7 +140,7 @@ public class Sender {
         message.setIntProperty("count", i);
         message.setJMSMessageID(String.valueOf(i));
         messageProducer.send(message, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE,
-          new MyCompletionLister());
+          this);
         Thread.sleep(messagesDelay);
       }
 
@@ -157,26 +157,22 @@ public class Sender {
     }
   }
 
-  /**
-   * Listener class for completion on sending messages
-   */
-  private class MyCompletionLister implements CompletionListener {
-    @Override
-    public void onCompletion(Message message) {
-      try {
-        LOG.info("Message sent {}", message.getJMSMessageID());
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
-    }
-
-    @Override
-    public void onException(Message message, Exception e) {
-      try {
-      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
-      } catch (JMSException jmsEx) {
-        jmsEx.printStackTrace();
-      }
+  @Override
+  public void onCompletion(Message message) {
+    try {
+      LOG.info("Message sent {}", message.getJMSMessageID());
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
     }
   }
+
+  @Override
+  public void onException(Message message, Exception e) {
+    try {
+      LOG.error("Exception on message {}", message.getJMSMessageID(), e);
+    } catch (JMSException jmsEx) {
+      jmsEx.printStackTrace();
+    }
+  }
+
 }
