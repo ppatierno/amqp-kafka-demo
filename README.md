@@ -133,38 +133,60 @@ The Kafka Web UI application is now running in EnMasse with a route that can be 
 
 ![Apache Kafka Web UI on OpenShift](./images/kafka_webui_deployment.png)
 
-## Running Vert.x Proton sender
+## AMQP Vert.x Proton
 
-The current repo provides a simple [Vert.x Proton](https://github.com/vert-x3/vertx-proton) based application for sending messages to a generic address, through AMQP protocol, 
-that can be, for example, a queue or a topic on a broker. Thanks to the way how the AMQP - Kafka bridge works, it can be used specifying a Kafka topic as AMQP address.
-The application is provided through the _vertx-proton-examples_ project that needs to be build and packaged using Maven.
-After that, we can use it for sending messages :
+The current repo provides simple [Vert.x Proton](https://github.com/vert-x3/vertx-proton) based applications for sending/receiving messages to/from a generic address, 
+through AMQP protocol, that can be, for example, a queue or a topic on a broker. Thanks to the way how the AMQP - Kafka bridge works, it can be used specifying 
+a Kafka topic as AMQP address. The application is provided through the _vertx-proton-examples_ project that needs to be build and packaged using Maven.
+
+### Sending messages
+
+After building it, we can use the application for sending messages in the following way :
 
     java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Sender -h 172.30.63.201 -a kafka.mytopic
 
 The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
-the delay between each other
+the delay between each other.
 
 The messages are sent to the Kafka topic and received by the consumer application showing them in the web page.
 
 ![Apache Kafka Web UI messages](./images/kafka_webui_messages.png)
 
-## Running Qpid JMS sender
+### Receiving messages
 
-Other then a pure AMQP client example (using Vert.x Proton), the repo provides a sender example using the [Qpid JMS client](https://qpid.apache.org/components/jms/).
+In the same way, we can receive messages :
+
+    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Receiver -h 172.30.63.201 -a kafka.mytopic
+
+Another available option is specifying a filter on messages to receive (i.e. "count % 2 = 0"). Of course, it works against a broker and not Apache Kafka.
+
+## Qpid JMS
+
+Other then pure AMQP client examples (using Vert.x Proton), the repo provides a sender/receiver example using te [Qpid JMS client](https://qpid.apache.org/components/jms/).
 It shows how it's possible to interact with Apache Kafka even with JMS API, of course using AMQP as underlying protocol like the Qpid project.
 This application is quite generic, because it allows to specify a JMS queue or topic as destination that can even be a Kafka topic.
 
 The application is provided through the _qpid-jms-examples_ project that needs to be build and packaged using Maven.
 
-After that, we can use it for sending messages :
+### Sending messages
+
+After building it, we can use the application for sending messages in the following way :
 
     java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -h 172.30.63.201 -t kafka.mytopic
     
 The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
-the delay between each other
+the delay between each other. For sending messages to a queue, the _-q_ option should be used instead of the previous _-t_.
 
 The messages are sent to the Kafka topic and received by the consumer application showing them in the web page.
+
+### Receiving messages
+
+In the same way, we can receive messages :
+
+    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Receiver -h 172.30.63.201 -t kafka.mytopic
+
+Another available option is specifying a filter on messages to receive (i.e. "count % 2 = 0"). Of course, it works against a broker and not Apache Kafka.
+Even in this case, for receiving messages from a queue, the _-q_ option should be used instead of the previous _-t_.
 
 ## Using MQTT protocol
 
