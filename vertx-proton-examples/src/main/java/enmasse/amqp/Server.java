@@ -19,7 +19,9 @@ package enmasse.amqp;
 import io.vertx.core.Vertx;
 import io.vertx.proton.ProtonClient;
 import io.vertx.proton.ProtonConnection;
+import io.vertx.proton.ProtonHelper;
 import io.vertx.proton.ProtonReceiver;
+import io.vertx.proton.ProtonSender;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -27,44 +29,34 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.qpid.proton.amqp.Binary;
-import org.apache.qpid.proton.amqp.DescribedType;
-import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.apache.qpid.proton.amqp.messaging.Rejected;
 import org.apache.qpid.proton.amqp.messaging.Section;
-import org.apache.qpid.proton.amqp.messaging.Source;
 import org.apache.qpid.proton.amqp.transport.AmqpError;
 import org.apache.qpid.proton.amqp.transport.ErrorCondition;
+import org.apache.qpid.proton.message.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Created by ppatiern on 13/03/17.
+ * Created by ppatiern on 27/03/17.
  */
-public class Receiver {
+public class Server {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Receiver.class);
+  private static final Logger LOG = LoggerFactory.getLogger(Server.class);
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String AMQP_ADDRESS = "kafka.mytopic/group.id/mygroup";
-
-  private ProtonConnection connection;
-  private ProtonReceiver receiver;
 
   public static void main(String[] args) {
 
     Options options = new Options();
     options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("a", true, "AMQP address");
-    options.addOption("f", true, "Filter");
     options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
@@ -75,22 +67,19 @@ public class Receiver {
       if (cmd.hasOption("u")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
-        helpFormatter.printHelp("Receiver", options);
+        helpFormatter.printHelp("Client", options);
 
       } else {
 
         String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String amqpAddress = cmd.getOptionValue("a", AMQP_ADDRESS);
-        String filter = cmd.getOptionValue("f", null);
 
         Vertx vertx = Vertx.vertx();
 
-        LOG.info("Starting receiver : connecting to [{}:{}] address [{}]",
-          messagingHost, messagingPort, amqpAddress);
+        LOG.info("Starting server : connecting to [{}:{}]", messagingHost, messagingPort);
 
-        Receiver receiver = new Receiver();
-        receiver.run(vertx, messagingHost, messagingPort, amqpAddress, filter);
+        Server server = new Server();
+        server.run(vertx, messagingHost, messagingPort);
 
         vertx.close();
       }
@@ -98,9 +87,10 @@ public class Receiver {
     } catch (ParseException e) {
       e.printStackTrace();
     }
+
   }
 
-  private void run(Vertx vertx, String messagingHost, int messagingPort, String amqpAddress, String filter) {
+  public void run(Vertx vertx, String messagingHost, int messagingPort) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -108,33 +98,27 @@ public class Receiver {
 
       if (done.succeeded()) {
 
-        this.connection = done.result();
-        this.connection.open();
+        ProtonConnection connection = done.result();
+        connection.open();
 
-        LOG.info("Connected as {}", this.connection.getContainer());
+        LOG.info("Connected as {}", connection.getContainer());
 
-        this.receiver = this.connection.createReceiver(amqpAddress);
-
-        if ((filter != null) && (filter != "")) {
-
-          Map<Symbol, DescribedType> map = new HashMap<>();
-          map.put(Symbol.valueOf("jms-selector"), new AmqpJmsSelectorFilter(filter));
-          Source source = (Source) this.receiver.getSource();
-          source.setFilter(map);
-        }
-
-        this.receiver.handler((delivery, message) -> {
+        // attach link on request address
+        ProtonReceiver receiver = connection.createReceiver("request");
+        receiver.handler((delivery, message) -> {
 
           Section section = message.getBody();
 
+          String request = null;
           if (section instanceof Data) {
             Binary data = ((Data)section).getValue();
-            LOG.info("Message received {}", new String(data.getArray()));
+            request = new String(data.getArray());
+            LOG.info("Request received '{}'", request);
           } else if (section instanceof AmqpValue) {
-            String text = (String) ((AmqpValue)section).getValue();
-            LOG.info("Message received {}", text);
+            request = (String) ((AmqpValue)section).getValue();
+            LOG.info("Request received '{}'", request);
           } else {
-            LOG.info("Message received but can't decode it");
+            LOG.info("Request received but can't decode it");
             Rejected rejected = new Rejected();
             rejected.setError(new ErrorCondition(AmqpError.DECODE_ERROR, "decoding error"));
             delivery.disposition(rejected, true);
@@ -143,7 +127,19 @@ public class Receiver {
 
           delivery.disposition(Accepted.getInstance(), true);
 
-        }).open();
+          ProtonSender sender = connection.createSender(message.getReplyTo());
+          sender.open();
+
+          // send response on the replyTo address
+          Message response = ProtonHelper.message(message.getReplyTo(), String.format("Response to '%s'", request));
+          sender.send(response, delivery1 -> {
+
+            LOG.info("Response delivered {}", delivery1.getRemoteState());
+            sender.close();
+          });
+
+        });
+        receiver.open();
 
       } else {
         LOG.info("Error on connection {}", done.cause());
@@ -154,37 +150,9 @@ public class Receiver {
     try {
       System.in.read();
 
-      if (this.receiver.isOpen())
-        this.receiver.close();
-      this.connection.close();
-
     } catch (IOException e) {
       e.printStackTrace();
     }
-
   }
 
-  public class AmqpJmsSelectorFilter implements DescribedType {
-
-    private final String selector;
-
-    public AmqpJmsSelectorFilter(String selector) {
-      this.selector = selector;
-    }
-
-    @Override
-    public Object getDescriptor() {
-      return Symbol.valueOf("apache.org:selector-filter:string");
-    }
-
-    @Override
-    public Object getDescribed() {
-      return this.selector;
-    }
-
-    @Override
-    public String toString() {
-      return "AmqpJmsSelectorType{" + selector + "}";
-    }
-  }
 }
