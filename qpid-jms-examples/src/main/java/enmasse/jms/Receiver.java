@@ -46,40 +46,60 @@ public class Receiver {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final String KAFKA_GROUP_ID = "mygroup";
+  private static final String TOPIC = "kafka.mytopic";
+  private static final String QUEUE = "myqueue";
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
-  private static final String KAFKA_TOPIC_LOOKUP = "myKafkaReceiveTopicLookup";
+  private static final String DESTINATION_LOOKUP = "myDestinationLookup";
 
   public static void main(String[] args) {
 
     Options options = new Options();
-    options.addOption("a", true, "Messaging host");
+    options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("t", true, "Kafka topic");
-    options.addOption("g", true, "Kafka consumer group");
-    options.addOption("h", false, "Print this help");
+    options.addOption("t", true, "Topic");
+    options.addOption("q", true, "Queue");
+    options.addOption("f", true, "Filter");
+    options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
 
     try {
       CommandLine cmd = parser.parse(options, args);
 
-      if (cmd.hasOption("h")) {
+      if (cmd.hasOption("u")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp("Receiver", options);
 
       } else {
 
-        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        if (cmd.hasOption("q") && cmd.hasOption("t")) {
+          throw new IllegalArgumentException("Can't specify both queue and topic");
+        }
+
+        String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
-        String kafkaConsumerGroup = cmd.getOptionValue("g", KAFKA_GROUP_ID);
+        String filter = cmd.getOptionValue("f", null);
+
+        Properties props = new Properties();
+        props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+        props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
+
+        String address = null;
+        if (cmd.hasOption("q")) {
+          address = cmd.getOptionValue("q", QUEUE);
+          props.put("queue.myDestinationLookup", address);
+        } else if (cmd.hasOption("t")) {
+          address = cmd.getOptionValue("t", TOPIC);
+          props.put("topic.myDestinationLookup", address);
+        }
+
+        LOG.info("Starting receiver : connecting to [{}:{}] address [{}]",
+          messagingHost, messagingPort, address);
 
         Receiver receiver = new Receiver();
-        receiver.run(messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+        receiver.run(props, filter);
       }
 
     } catch (ParseException e) {
@@ -87,22 +107,14 @@ public class Receiver {
     }
   }
 
-  private void run(String messagingHost, int messagingPort, String kafkaTopic, String kafkaConsumerGroup) {
-
-    LOG.info("Starting receiver : connecting to [{}:{}] topic [{}] consumer group [{}]",
-      messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+  private void run(Properties props, String filter) {
 
     try {
-
-      Properties props = new Properties();
-      props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-      props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
-      props.put("topic.myKafkaReceiveTopicLookup", String.format("%s/group.id/%s", kafkaTopic, kafkaConsumerGroup));
 
       Context context = new InitialContext(props);
 
       ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
-      Destination topic = (Destination) context.lookup(KAFKA_TOPIC_LOOKUP);
+      Destination topic = (Destination) context.lookup(DESTINATION_LOOKUP);
 
       Connection connection = factory.createConnection();
       connection.setExceptionListener(e -> {
@@ -114,7 +126,7 @@ public class Receiver {
 
       Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MessageConsumer messageConsumer = session.createConsumer(topic);
+      MessageConsumer messageConsumer = session.createConsumer(topic, filter);
 
       messageConsumer.setMessageListener(message -> {
 

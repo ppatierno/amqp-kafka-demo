@@ -47,22 +47,25 @@ public class Sender {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String KAFKA_TOPIC = "kafka.mytopic";
+  private static final String TOPIC = "kafka.mytopic";
+  private static final String QUEUE = "myqueue";
+
   private static final int MESSAGES_DELAY = 10;
   private static final int MESSAGES_COUNT = 50;
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
-  private static final String KAFKA_TOPIC_LOOKUP = "myKafkaTopicLookup";
+  private static final String DESTINATION_LOOKUP = "myDestinationLookup";
 
   public static void main(String[] args) {
 
     Options options = new Options();
-    options.addOption("a", true, "Messaging host");
+    options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("t", true, "Kafka topic");
+    options.addOption("t", true, "Topic");
+    options.addOption("q", true, "Queue");
     options.addOption("c", true, "Number of messages to send");
     options.addOption("d", true, "Delay between messages");
-    options.addOption("h", false, "Print this help");
+    options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
 
@@ -70,21 +73,40 @@ public class Sender {
 
       CommandLine cmd = parser.parse(options, args);
 
-      if (cmd.hasOption("h")) {
+      if (cmd.hasOption("u")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp("Sender", options);
 
       } else {
 
-        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        if (cmd.hasOption("q") && cmd.hasOption("t")) {
+          throw new IllegalArgumentException("Can't specify both queue and topic");
+        }
+
+        String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
         int messagesCount = Integer.parseInt(cmd.getOptionValue("c", String.valueOf(MESSAGES_COUNT)));
         int messagesDelay = Integer.parseInt(cmd.getOptionValue("d", String.valueOf(MESSAGES_DELAY)));
 
+        Properties props = new Properties();
+        props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
+        props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
+
+        String address = null;
+        if (cmd.hasOption("q")) {
+          address = cmd.getOptionValue("q", QUEUE);
+          props.put("queue.myDestinationLookup", address);
+        } else if (cmd.hasOption("t")) {
+          address = cmd.getOptionValue("t", TOPIC);
+          props.put("topic.myDestinationLookup", address);
+        }
+
+        LOG.info("Starting sender : connecting to [{}:{}] address [{}] msgs count/delay [{}/{}]",
+          messagingHost, messagingPort, address, messagesCount, messagesDelay);
+
         Sender sender = new Sender();
-        sender.run(messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+        sender.run(props, messagesCount, messagesDelay);
       }
 
     } catch (ParseException e) {
@@ -92,22 +114,14 @@ public class Sender {
     }
   }
 
-  private void run(String messagingHost, int messagingPort, String kafkaTopic, int messagesCount, int messagesDelay) {
-
-    LOG.info("Starting sender : connecting to [{}:{}] topic [{}] msgs count/delay [{}/{}]",
-      messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+  private void run(Properties props, int messagesCount, int messagesDelay) {
 
     try {
-
-      Properties props = new Properties();
-      props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
-      props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
-      props.put("topic.myKafkaTopicLookup", kafkaTopic);
 
       Context context = new InitialContext(props);
 
       ConnectionFactory factory = (ConnectionFactory) context.lookup(FACTORY_LOOKUP);
-      Destination topic = (Destination) context.lookup(KAFKA_TOPIC_LOOKUP);
+      Destination topic = (Destination) context.lookup(DESTINATION_LOOKUP);
 
       Connection connection = factory.createConnection();
       connection.setExceptionListener(e -> {

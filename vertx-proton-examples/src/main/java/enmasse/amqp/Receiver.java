@@ -27,14 +27,19 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.DescribedType;
+import org.apache.qpid.proton.amqp.Symbol;
 import org.apache.qpid.proton.amqp.messaging.Accepted;
 import org.apache.qpid.proton.amqp.messaging.AmqpValue;
 import org.apache.qpid.proton.amqp.messaging.Data;
 import org.apache.qpid.proton.amqp.messaging.Section;
+import org.apache.qpid.proton.amqp.messaging.Source;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by ppatiern on 13/03/17.
@@ -45,8 +50,7 @@ public class Receiver {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String KAFKA_TOPIC = "kafka.mytopic";
-  private static final String KAFKA_GROUP_ID = "mygroup";
+  private static final String AMQP_ADDRESS = "kafka.mytopic/group.id/mygroup";
 
   private ProtonConnection connection;
   private ProtonReceiver receiver;
@@ -54,33 +58,36 @@ public class Receiver {
   public static void main(String[] args) {
 
     Options options = new Options();
-    options.addOption("a", true, "Messaging host");
+    options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("t", true, "Kafka topic");
-    options.addOption("g", true, "Kafka consumer group");
-    options.addOption("h", false, "Print this help");
+    options.addOption("a", true, "AMQP address");
+    options.addOption("f", true, "Filter");
+    options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
 
     try {
       CommandLine cmd = parser.parse(options, args);
 
-      if (cmd.hasOption("h")) {
+      if (cmd.hasOption("u")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp("Receiver", options);
 
       } else {
 
-        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
-        String kafkaConsumerGroup = cmd.getOptionValue("g", KAFKA_GROUP_ID);
+        String amqpAddress = cmd.getOptionValue("a", AMQP_ADDRESS);
+        String filter = cmd.getOptionValue("f", null);
 
         Vertx vertx = Vertx.vertx();
 
+        LOG.info("Starting receiver : connecting to [{}:{}] address [{}]",
+          messagingHost, messagingPort, amqpAddress);
+
         Receiver receiver = new Receiver();
-        receiver.run(vertx, messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+        receiver.run(vertx, messagingHost, messagingPort, amqpAddress, filter);
 
         vertx.close();
       }
@@ -90,10 +97,7 @@ public class Receiver {
     }
   }
 
-  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, String kafkaConsumerGroup) {
-
-    LOG.info("Starting receiver : connecting to [{}:{}] topic [{}] consumer group [{}]",
-      messagingHost, messagingPort, kafkaTopic, kafkaConsumerGroup);
+  private void run(Vertx vertx, String messagingHost, int messagingPort, String amqpAddress, String filter) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -106,7 +110,15 @@ public class Receiver {
 
         LOG.info("Connected as {}", this.connection.getContainer());
 
-        this.receiver = this.connection.createReceiver(String.format("%s/group.id/%s", kafkaTopic, kafkaConsumerGroup));
+        this.receiver = this.connection.createReceiver(amqpAddress);
+
+        if ((filter != null) && (filter != "")) {
+
+          Map<Symbol, DescribedType> map = new HashMap<>();
+          map.put(Symbol.valueOf("jms-selector"), new AmqpJmsSelectorFilter(filter));
+          Source source = (Source) this.receiver.getSource();
+          source.setFilter(map);
+        }
 
         this.receiver.handler((delivery, message) -> {
 
@@ -143,5 +155,29 @@ public class Receiver {
       e.printStackTrace();
     }
 
+  }
+
+  public class AmqpJmsSelectorFilter implements DescribedType {
+
+    private final String selector;
+
+    public AmqpJmsSelectorFilter(String selector) {
+      this.selector = selector;
+    }
+
+    @Override
+    public Object getDescriptor() {
+      return Symbol.valueOf("apache.org:selector-filter:string");
+    }
+
+    @Override
+    public Object getDescribed() {
+      return this.selector;
+    }
+
+    @Override
+    public String toString() {
+      return "AmqpJmsSelectorType{" + selector + "}";
+    }
   }
 }

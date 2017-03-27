@@ -135,13 +135,15 @@ The Kafka Web UI application is now running in EnMasse with a route that can be 
 
 ## Running Vert.x Proton sender
 
-The current repo provides a simple [Vert.x Proton](https://github.com/vert-x3/vertx-proton) based application for sending messages on a Kafka topic using the AMQP protocol so that we are able to see them
-in the web page. The application is provided through tht _vertx-proton-examples_ project that needs to be build and packaged using Maven.
+The current repo provides a simple [Vert.x Proton](https://github.com/vert-x3/vertx-proton) based application for sending messages to a generic address, through AMQP protocol, 
+that can be, for example, a queue or a topic on a broker. Thanks to the way how the AMQP - Kafka bridge works, it can be used specifying a Kafka topic as AMQP address.
+The application is provided through the _vertx-proton-examples_ project that needs to be build and packaged using Maven.
 After that, we can use it for sending messages :
 
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Sender -a 172.30.63.201 -t kafka.mytopic
+    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Sender -h 172.30.63.201 -a kafka.mytopic
 
-The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port and the number of messages to send.
+The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
+the delay between each other
 
 The messages are sent to the Kafka topic and received by the consumer application showing them in the web page.
 
@@ -151,11 +153,18 @@ The messages are sent to the Kafka topic and received by the consumer applicatio
 
 Other then a pure AMQP client example (using Vert.x Proton), the repo provides a sender example using the [Qpid JMS client](https://qpid.apache.org/components/jms/).
 It shows how it's possible to interact with Apache Kafka even with JMS API, of course using AMQP as underlying protocol like the Qpid project.
-The application is provided through tht _qpid-jms-examples_ project that needs to be build and packaged using Maven.
+This application is quite generic, because it allows to specify a JMS queue or topic as destination that can even be a Kafka topic.
+
+The application is provided through the _qpid-jms-examples_ project that needs to be build and packaged using Maven.
 
 After that, we can use it for sending messages :
 
-    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -a 172.30.63.201 -t kafka.mytopic
+    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -h 172.30.63.201 -t kafka.mytopic
+    
+The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
+the delay between each other
+
+The messages are sent to the Kafka topic and received by the consumer application showing them in the web page.
 
 ## Using MQTT protocol
 

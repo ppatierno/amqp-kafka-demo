@@ -48,7 +48,7 @@ public class Sender {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
-  private static final String KAFKA_TOPIC = "kafka.mytopic";
+  private static final String AMQP_ADDRESS = "kafka.mytopic";
   private static final int MESSAGES_DELAY = 10;
   private static final int MESSAGES_COUNT = 50;
 
@@ -59,35 +59,38 @@ public class Sender {
   public static void main(String[] args) {
 
     Options options = new Options();
-    options.addOption("a", true, "Messaging host");
+    options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
-    options.addOption("t", true, "Kafka topic");
+    options.addOption("a", true, "AMQP address");
     options.addOption("c", true, "Number of messages to send");
     options.addOption("d", true, "Delay between messages");
-    options.addOption("h", false, "Print this help");
+    options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
 
     try {
       CommandLine cmd = parser.parse(options, args);
 
-      if (cmd.hasOption("h")) {
+      if (cmd.hasOption("u")) {
 
         HelpFormatter helpFormatter = new HelpFormatter();
         helpFormatter.printHelp("Sender", options);
 
       } else {
 
-        String messagingHost = cmd.getOptionValue("a", MESSAGING_HOST);
+        String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
-        String kafkaTopic = cmd.getOptionValue("t", KAFKA_TOPIC);
+        String amqpAddress = cmd.getOptionValue("a", AMQP_ADDRESS);
         int messagesCount = Integer.parseInt(cmd.getOptionValue("c", String.valueOf(MESSAGES_COUNT)));
         int messagesDelay = Integer.parseInt(cmd.getOptionValue("d", String.valueOf(MESSAGES_DELAY)));
 
         Vertx vertx = Vertx.vertx();
 
+        LOG.info("Starting sender : connecting to [{}:{}] address [{}] msgs count/delay [{}/{}]",
+          messagingHost, messagingPort, amqpAddress, messagesCount, messagesDelay);
+
         Sender sender = new Sender();
-        sender.run(vertx, messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+        sender.run(vertx, messagingHost, messagingPort, amqpAddress, messagesCount, messagesDelay);
 
         vertx.close();
       }
@@ -98,10 +101,7 @@ public class Sender {
 
   }
 
-  private void run(Vertx vertx, String messagingHost, int messagingPort, String kafkaTopic, int messagesCount, int messagesDelay) {
-
-    LOG.info("Starting sender : connecting to [{}:{}] topic [{}] msgs count/delay [{}/{}]",
-      messagingHost, messagingPort, kafkaTopic, messagesCount, messagesDelay);
+  private void run(Vertx vertx, String messagingHost, int messagingPort, String amqpAddress, int messagesCount, int messagesDelay) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -114,7 +114,7 @@ public class Sender {
 
         LOG.info("Connected as {}", this.connection.getContainer());
 
-        this.sender = this.connection.createSender(kafkaTopic);
+        this.sender = this.connection.createSender(amqpAddress);
         this.sender.open();
 
         vertx.setPeriodic(messagesDelay, t -> {
@@ -125,7 +125,7 @@ public class Sender {
 
             if (++count <= messagesCount) {
 
-              Message message = ProtonHelper.message(kafkaTopic,
+              Message message = ProtonHelper.message(amqpAddress,
                 String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
 
               Map<Symbol, Object> map = new HashMap<>();
