@@ -41,6 +41,9 @@ public class Consumer {
 
   private static final Logger LOG = LoggerFactory.getLogger(Consumer.class);
 
+  private static final String SEEK = "seek";
+  private static final String SEEK_TO_BEGIN = "seektobegin";
+
   private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
   private static final String KAFKA_CONSUMER_GROUPID = "mygroup";
   private static final String KAFKA_CONSUMER_TOPIC = "kafka.mytopic";
@@ -106,8 +109,22 @@ public class Consumer {
 
     vertx.eventBus().consumer("config", message -> {
 
-      if (message.body().toString().equals("seektobegin")) {
-        consumer.seekToBeginning(assignedTopicPartitions);
+      String body = message.body().toString();
+
+      switch (body) {
+
+        case SEEK_TO_BEGIN:
+
+          consumer.seekToBeginning(assignedTopicPartitions);
+          break;
+
+        case SEEK:
+
+          long offset = Long.valueOf(message.headers().get("offset"));
+          assignedTopicPartitions.stream().forEach(topicPartition -> {
+            consumer.seek(topicPartition, offset);
+          });
+          break;
       }
     });
   }

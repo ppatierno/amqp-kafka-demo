@@ -6,7 +6,8 @@
 <body>
 <h1>Apache Kafka messages dashboard</h1>
 
-<button id="toBegin">To Begin</button>
+<button id="seekToBegin">from begin</button>
+<input id="offset"/><button id="seek">seek</button>
 <div id="messages"></div>
 
 <script>
@@ -19,9 +20,20 @@
       });
     };
 
-    $('#toBegin').click(function() {
+    $('#seekToBegin').click(function() {
       $('#messages').empty();
       eb.publish("config", "seektobegin");
+    });
+
+    $('#seek').click(function() {
+      $('#messages').empty();
+
+      var offset = $('#offset').val();
+      var headers = {
+        "offset" : offset
+      }
+
+      eb.publish("config", "seek", headers);
     });
   </script>
 
