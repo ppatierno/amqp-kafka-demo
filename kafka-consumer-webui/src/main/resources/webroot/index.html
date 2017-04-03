@@ -1,43 +1,166 @@
+<!DOCTYPE html>
 <html>
-<head>
-  <script src="jquery-3.1.1.min.js"></script>
-  <script src="sockjs.min.js"></script>
-  <script src="vertx-eventbus.js"></script>
-<body>
-<h1>Apache Kafka messages dashboard</h1>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <!-- PatternFly Styles -->
 
-<button id="seekToBegin">from begin</button>
-<input id="offset"/><button id="seek">seek</button>
-<div id="messages"></div>
+    <!-- PatternFly Styles -->
+    <link rel="stylesheet" href="dist/css/patternfly.min.css">
+    <link rel="stylesheet" href="dist/css/patternfly-additions.min.css">
 
-<script>
-    var eb = new EventBus("http://" + location.host + "/eventbus");
-    eb.onopen = function() {
-      console.log("open");
-      eb.registerHandler("dashboard", function(error, message) {
-        console.log(message);
-        $('#messages').prepend('<div>' + message.body + '</div>');
-      });
-    };
+    <!-- jQuery CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 
-    $('#seekToBegin').click(function() {
-      $('#messages').empty();
-      eb.publish("config", "seektobegin");
-    });
+    <!-- Bootstrap JS CDN -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 
-    $('#seek').click(function() {
-      $('#messages').empty();
+    <!-- Patternfly JS -->
+    <script src="dist/js/patternfly.min.js"></script>
 
-      var offset = $('#offset').val();
-      var headers = {
-        "offset" : offset
+    <!-- SockJS bridging and Vert.x Event Bus -->
+    <script src="sockjs.min.js"></script>
+    <script src="vertx-eventbus.js"></script>
+
+    <style media="screen">
+      .log {
+        background: #f1f1f1;
+        height: calc(100vh - 280px);
+        overflow-y: scroll;
+        padding: 20px;
+        margin-top: 20px;
       }
+    </style>
 
-      eb.publish("config", "seek", headers);
-    });
-  </script>
+  </head>
+  <body>
 
+    <nav class="navbar navbar-default navbar-pf" role="navigation">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse-11">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="/">
+          <img src="dist/img/brand.svg" alt="PatternFly Enterprise Application" />
+        </a>
+      </div>
+      <div class="collapse navbar-collapse navbar-collapse-11">
+        <ul class="nav navbar-nav navbar-utility">
+          <li>
+            <a href="#">Status</a>
+          </li>
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+              <span class="pficon pficon-user"></span>
+              Brian Johnson
+              <b class="caret"></b>
+            </a>
+            <ul class="dropdown-menu">
+              <li>
+                <a href="#">Link</a>
+              </li>
+              <li>
+                <a href="#">Another link</a>
+              </li>
+              <li>
+                <a href="#">Something else here</a>
+              </li>
+              <li class="divider"></li>
+              <li class="dropdown-submenu">
+                <a tabindex="-1" href="#">More options</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a href="#">Link</a>
+                  </li>
+                  <li>
+                    <a href="#">Another link</a>
+                  </li>
+                  <li>
+                    <a href="#">Something else here</a>
+                  </li>
+                  <li class="divider"></li>
+                  <li class="dropdown-header">Nav header</li>
+                  <li>
+                    <a href="#">Separated link</a>
+                  </li>
+                  <li class="divider"></li>
+                  <li>
+                    <a href="#">One more separated link</a>
+                  </li>
+                </ul>
+              </li>
+              <li class="divider"></li>
+              <li>
+                <a href="#">One more separated link</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-sm-8 col-md-9">
+          <div class="page-header page-header-bleed-right">
+            <h1>Apache Kafka Messages Dashboard</h1>
+          </div>
+          <p>Description of this form. Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
 
-</body>
+          <form class="form-inline">
+            <button type="button" class="btn btn-primary" id="seekToBegin">From Begin</button>
+            <div class="form-group">
+              <div class="input-group">
+                <input type="text" class="form-control" placeholder="offset ..." id="offset">
+                <span class="input-group-btn">
+                  <button class="btn btn-default" type="button" id="seek">Seek!</button>
+                </span>
+              </div><!-- /input-group -->
+            </div>
+          </form>
+
+          <ul class="list-unstyled log" id="messages"></ul>
+
+        </div><!-- /col -->
+
+        <div class="col-sm-4 col-md-3 sidebar-pf sidebar-pf-right">
+          <div class="sidebar-header sidebar-header-bleed-left sidebar-header-bleed-right">
+            <h2 class="h5">More Information</h2>
+          </div>
+          <p>Add here information about where to get this demo, git repo, or any other addiontal information you'd like the audience to have.</p>
+        </div><!-- /col -->
+      </div><!-- /row -->
+    </div>
+
+    <script>
+      var eb = new EventBus("http://" + location.host + "/eventbus");
+      eb.onopen = function() {
+        console.log("open");
+        eb.registerHandler("dashboard", function(error, message) {
+          console.log(message);
+          $('#messages').prepend('<li>' + message.body + '</li>');
+        });
+      };
+
+      $('#seekToBegin').click(function() {
+        $('#messages').empty();
+        eb.publish("config", "seektobegin");
+      });
+
+      $('#seek').click(function() {
+        $('#messages').empty();
+
+        var offset = $('#offset').val();
+        var headers = {
+          "offset" : offset
+        }
+
+        eb.publish("config", "seek", headers);
+      });
+    </script>
+
+  </body>
 </html>
