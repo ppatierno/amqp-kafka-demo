@@ -55,7 +55,10 @@
           <div class="page-header page-header-bleed-right">
             <h1>Apache Kafka Messages Dashboard</h1>
           </div>
-          <p>Description of this form. Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
+          <div>
+            <strong><p id="status"></p></strong>
+          </div>
+
 
           <form class="form-inline">
             <button type="button" class="btn btn-primary" id="seekToBegin">From Begin</button>
@@ -86,12 +89,21 @@
 
     <script>
       var eb = new EventBus("http://" + location.host + "/eventbus");
+
       eb.onopen = function() {
-        console.log("open");
+
+        // handler for getting messages to show in the dashboard
         eb.registerHandler("dashboard", function(error, message) {
-          console.log(message);
           $('#messages').prepend('<li>' + message.body + '</li>');
         });
+
+        // handler for getting Kafka consumer status
+        eb.registerHandler("status", function(error, message) {
+          $('#status').text(message.body);
+        });
+
+        // asking for Kafka consumer status on startup
+        eb.publish("config", "status");
       };
 
       $('#seekToBegin').click(function() {

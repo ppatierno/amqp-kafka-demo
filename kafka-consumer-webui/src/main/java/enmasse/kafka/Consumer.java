@@ -29,8 +29,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -43,6 +41,7 @@ public class Consumer {
 
   private static final String SEEK = "seek";
   private static final String SEEK_TO_BEGIN = "seektobegin";
+  private static final String STATUS = "status";
 
   private static final String KAFKA_BOOTSTRAP_SERVERS = "localhost:9092";
   private static final String KAFKA_CONSUMER_GROUPID = "mygroup";
@@ -72,6 +71,7 @@ public class Consumer {
     BridgeOptions options = new BridgeOptions();
     options
       .addOutboundPermitted(new PermittedOptions().setAddress("dashboard"))
+      .addOutboundPermitted(new PermittedOptions().setAddress("status"))
       .addInboundPermitted(new PermittedOptions().setAddress("config"));
 
     router.route("/eventbus/*").handler(SockJSHandler.create(vertx).bridge(options));
@@ -103,6 +103,9 @@ public class Consumer {
 
     consumer.partitionsAssignedHandler(topicPartitions -> {
       assignedTopicPartitions = topicPartitions;
+      TopicPartition topicPartition = assignedTopicPartitions.stream().findFirst().get();
+      String status = String.format("Joined group = [%s], topic = [%s], partition = [%d]", groupId, topicPartition.getTopic(), topicPartition.getPartition());
+      vertx.eventBus().publish("status", status);
     });
 
     consumer.subscribe(topic);
@@ -120,10 +123,25 @@ public class Consumer {
 
         case SEEK:
 
-          long offset = Long.valueOf(message.headers().get("offset"));
-          assignedTopicPartitions.stream().forEach(topicPartition -> {
-            consumer.seek(topicPartition, offset);
-          });
+          try {
+            long offset = Long.valueOf(message.headers().get("offset"));
+            assignedTopicPartitions.stream().forEach(topicPartition -> {
+              consumer.seek(topicPartition, offset);
+            });
+          } catch (NumberFormatException e) {
+            LOG.error("The specified offset isn't a number", e);
+          }
+          break;
+
+        case STATUS:
+
+          if (assignedTopicPartitions != null) {
+            TopicPartition topicPartition = assignedTopicPartitions.stream().findFirst().get();
+            String status = String.format("Joined group = [%s], topic = [%s], partition = [%d]", groupId, topicPartition.getTopic(), topicPartition.getPartition());
+            vertx.eventBus().publish("status", status);
+          } else {
+            vertx.eventBus().publish("status", String.format("Joining group = [%s] ...", groupId));
+          }
           break;
       }
     });
