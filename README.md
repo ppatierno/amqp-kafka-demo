@@ -129,7 +129,14 @@ Finally, for deploying the application :
     oc create -f /<path-to-github-repo>/amqp-kafka-demo/kafka-consumer-webui/target/fabric8/kafka-consumer-webui-deployment.yml
     oc create -f /<path-to-github-repo>/amqp-kafka-demo/kafka-consumer-webui/target/fabric8/kafka-consumer-webui-route.yml
 
-The Kafka Web UI application is now running in EnMasse with a route that can be used to access the related web page
+The Kafka Web UI application is now running in EnMasse with a route that can be used to access the related web page.
+
+In this web page :
+
+* status of the internal Kafka consumer (if it's joining or already joined the consumer group)
+* dashboard which shows messages received in real time (or re-reading the stream)
+* button for re-reading the stream from the beginning
+* input and button for re-reading the stream starting from a specified offset
 
 ![Apache Kafka Web UI on OpenShift](./images/kafka_webui_deployment.png)
 
