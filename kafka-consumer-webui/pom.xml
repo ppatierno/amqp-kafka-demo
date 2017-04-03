@@ -63,6 +63,31 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy-eventbus-client</id>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>io.vertx</groupId>
+                  <artifactId>vertx-web</artifactId>
+                  <version>${vertx.version}</version>
+                  <classifier>client</classifier>
+                  <type>js</type>
+                  <overWrite>true</overWrite>
+                  <outputDirectory>src/main/resources/webroot</outputDirectory>
+                  <destFileName>vertx-eventbus.js</destFileName>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 

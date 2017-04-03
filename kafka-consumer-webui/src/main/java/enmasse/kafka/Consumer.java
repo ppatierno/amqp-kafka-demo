@@ -23,13 +23,16 @@ import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
+import io.vertx.kafka.client.common.TopicPartition;
 import io.vertx.kafka.client.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Created by ppatiern on 08/03/17.
@@ -42,6 +45,8 @@ public class Consumer {
   private static final String KAFKA_CONSUMER_GROUPID = "mygroup";
   private static final String KAFKA_CONSUMER_TOPIC = "kafka.mytopic";
   private static final String KAFKA_CONSUMER_AUTO_OFFSET_RESET = "earliest";
+
+  private static Set<TopicPartition> assignedTopicPartitions;
 
   public static void main(String[] args) {
 
@@ -62,7 +67,10 @@ public class Consumer {
     Router router = Router.router(vertx);
 
     BridgeOptions options = new BridgeOptions();
-    options.setOutboundPermitted(Collections.singletonList(new PermittedOptions().setAddress("dashboard")));
+    options
+      .addOutboundPermitted(new PermittedOptions().setAddress("dashboard"))
+      .addInboundPermitted(new PermittedOptions().setAddress("config"));
+
     router.route("/eventbus/*").handler(SockJSHandler.create(vertx).bridge(options));
     router.route().handler(StaticHandler.create().setCachingEnabled(false));
 
@@ -89,6 +97,18 @@ public class Consumer {
         record.topic(), record.partition(), record.offset(), record.value());
       vertx.eventBus().publish("dashboard", record.value());
     });
+
+    consumer.partitionsAssignedHandler(topicPartitions -> {
+      assignedTopicPartitions = topicPartitions;
+    });
+
     consumer.subscribe(topic);
+
+    vertx.eventBus().consumer("config", message -> {
+
+      if (message.body().toString().equals("seektobegin")) {
+        consumer.seekToBeginning(assignedTopicPartitions);
+      }
+    });
   }
 }

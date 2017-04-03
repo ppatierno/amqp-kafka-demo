@@ -2,22 +2,30 @@
 <head>
   <script src="jquery-3.1.1.min.js"></script>
   <script src="sockjs.min.js"></script>
-  <script src="vertxbus.js"></script>
+  <script src="vertx-eventbus.js"></script>
 <body>
 <h1>Apache Kafka messages dashboard</h1>
 
+<button id="toBegin">To Begin</button>
 <div id="messages"></div>
 
 <script>
-    var eb = new vertx.EventBus("http://" + location.host + "/eventbus");
+    var eb = new EventBus("http://" + location.host + "/eventbus");
     eb.onopen = function() {
       console.log("open");
-      eb.registerHandler("dashboard", function(message) {
+      eb.registerHandler("dashboard", function(error, message) {
         console.log(message);
-        $('#messages').prepend('<div>' + message + '</div>');
+        $('#messages').prepend('<div>' + message.body + '</div>');
       });
     };
+
+    $('#toBegin').click(function() {
+      $('#messages').empty();
+      eb.publish("config", "seektobegin");
+    });
   </script>
+
+
 
 </body>
 </html>
