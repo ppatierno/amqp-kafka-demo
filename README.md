@@ -131,6 +131,8 @@ Finally, for deploying the application :
 
 The Kafka Web UI application is now running in EnMasse with a route that can be used to access the related web page.
 
+![Apache Kafka Web UI on OpenShift](./images/kafka_webui_deployment.png)
+
 In this web page :
 
 * status of the internal Kafka consumer (if it's joining or already joined the consumer group)
@@ -138,7 +140,7 @@ In this web page :
 * button for re-reading the stream from the beginning
 * input and button for re-reading the stream starting from a specified offset
 
-![Apache Kafka Web UI on OpenShift](./images/kafka_webui_deployment.png)
+![Apache Kafka Web UI](./images/kafka_webui.png)
 
 ## AMQP Vert.x Proton
 
