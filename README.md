@@ -27,6 +27,9 @@ When you want to shutdown the demo instance, there is the following useful scrip
 
     bash openshift_undeploy.sh
 
+> it's also possible to use the TLS enabled EnMasse deployment in order to connect AMQP clients outside of the cluster through an OpenShift route. 
+In this case the _openshift_tls_deploy.sh_ should be used.
+
 ## Step by Step deployment
 
 ### Creating project
