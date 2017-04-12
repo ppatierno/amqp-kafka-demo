@@ -223,36 +223,40 @@ the request message to the server and another "dynamic" one for receiving the re
 * the JMS implementation uses a couple of queues on a broker. A queue is used by the client for sending the request message to the server and a temporary queue used by the client
 for receiving the response from the server
 
+Using EnMasse, the above needed address/queues can be provisioned through the _addresses.json_ file in the "addresses" directory postint it to the HTTP address API.
+
+    curl -X PUT -H "content-type: application/json" --data-binary @addresses.json http://$(oc get service -o jsonpath='{.spec.clusterIP}' address-controller):8080/v3/address
+
 ### AMQP Vert.x Proton
 
-Because this example uses direct messaging through the router, it's needed to configure the "request" address on the router itself.
-In order to do that, without modifying the static router configuration file (restarting the router), it's possible to use the _qdmanage_ tool in the following way :
+For starting the server side :
 
-    qdmanage -b 172.30.176.73 create type=address name=request prefix=request distribution=balanced
-    
-Where the provided address is the messaging service address inside the OpenShift cluster.
+    java -jar ./target/vertx-server.jar -h 172.30.63.201 -p 55673
+
+The provided address and port are the messaging service address and the internal port for connecting services inside the OpenShift cluster.
+The server is now able to accept requests (AMQP messages) from a client through the router. 
 
 For starting the client side :
 
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Client -h 172.30.63.201 -p 5672
+    java -jar ./target/vertx-client.jar -h 172.30.63.201 -p 5672
 
 The provided address and port are the messaging service ones inside the OpenShift cluster.
-For starting the server side :
-
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Client -h 172.30.63.201 -p 55673
-
-The provided address and port are the messaging service address and the internal port for connected services inside the OpenShift cluster.
+The cliend sends a request (message) to the server and receives a reply for that from the server itself.
 
 ### Qpid JMS
 
-For starting the client side :
-
-    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Client -h 172.30.63.201 -p 5672
-
 For starting the server side :
 
-    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Server -h 172.30.63.201 -p 5672
+    java -jar ./target/jms-server.jar -h 172.30.63.201 -p 5672
     
 The provided address and port are the messaging service ones inside the OpenShift cluster.
+The server is now a receiver on the configured queue for accepting requests from client.
+
+For starting the client side :
+
+    java -jar ./target/jms-client.jar -h 172.30.63.201 -p 5672
+
+The client sends a request (message) to the server through the configured queue hosted in the broker inside the OpenShift cluster.
+It receives a reply from the server through a temporary queue then.
     
 
