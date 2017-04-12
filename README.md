@@ -155,7 +155,7 @@ a Kafka topic as AMQP address. The application is provided through the _vertx-pr
 
 After building it, we can use the application for sending messages in the following way :
 
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Sender -h 172.30.63.201 -a kafka.mytopic
+    java -jar ./target/vertx-sender.jar -h 172.30.63.201 -a kafka.mytopic
 
 The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
 the delay between each other.
@@ -168,7 +168,7 @@ The messages are sent to the Kafka topic and received by the consumer applicatio
 
 In the same way, we can receive messages :
 
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Receiver -h 172.30.63.201 -a kafka.mytopic
+    java -jar ./target/vertx-receiver.jar enmasse.amqp.Receiver -h 172.30.63.201 -a kafka.mytopic/group.id/mygroup
 
 Another available option is specifying a filter on messages to receive (i.e. "count % 2 = 0"). Of course, it works against a broker and not Apache Kafka.
 
@@ -184,7 +184,7 @@ The application is provided through the _qpid-jms-examples_ project that needs t
 
 After building it, we can use the application for sending messages in the following way :
 
-    java -cp ./target/qpid-jms-examples-1.0-SNAPSHOT.jar enmasse.jms.Sender -h 172.30.63.201 -t kafka.mytopic
+    java -jar ./target/jms-sender.jar -h 172.30.63.201 -t kafka.mytopic
     
 The provided address is the messaging service address inside the OpenShift cluster; other options are available for specifying the port, the number of messages to send and
 the delay between each other. For sending messages to a queue, the _-q_ option should be used instead of the previous _-t_.
@@ -195,7 +195,7 @@ The messages are sent to the Kafka topic and received by the consumer applicatio
 
 In the same way, we can receive messages :
 
-    java -cp ./target/vertx-proton-examples-1.0-SNAPSHOT.jar enmasse.amqp.Receiver -h 172.30.63.201 -t kafka.mytopic
+    java -jar ./target/jms-receiver.jar -h 172.30.63.201 -t kafka.mytopic/group.id/mygroup
 
 Another available option is specifying a filter on messages to receive (i.e. "count % 2 = 0"). Of course, it works against a broker and not Apache Kafka.
 Even in this case, for receiving messages from a queue, the _-q_ option should be used instead of the previous _-t_.
