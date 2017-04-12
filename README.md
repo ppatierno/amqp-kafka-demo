@@ -258,5 +258,28 @@ For starting the client side :
 
 The client sends a request (message) to the server through the configured queue hosted in the broker inside the OpenShift cluster.
 It receives a reply from the server through a temporary queue then.
-    
 
+## Filtering
+
+Another feature that we can't have with Apache Kafka is filtering messages on a topic in order to have the consumer receiving only a part of them.
+In Kafka, messages are just raw bytes and there are no metadata on each message like the AMQP protocol supports natively (i.e. system and custom properties).
+It means that the filtering operation can be executed only at application level; the consumer gets all the messages from the topic, checks the payload and then, 
+knowing the used encoding (i.e. binary, JSON, XML, ...), finds meaningful information for filtering messages in order to discard or process them. 
+In any case, the consumer gets ALL the messages from the topic.
+
+Using a broker, when a receiver "attaches" to a queue/topic it can ask for applying a filter in order to get only the messages which meet the filter itself.
+It's up to the broker applying that filter on the incoming messages and delivering part of them.
+
+### AMQP Vert.x Proton
+
+The provided Vert.x sender adds a custom AMQP property to each message named "count" with an index of the message sent. In order, to filter messages based on
+this property, we can use the _-f_ option for providing a filter (i.e. getting only messages with "even" count).
+
+    java -jar ./target/vertx-receiver.jar -h 172.30.63.201 -p 5672 -a mytopic -f "count % 2 = 0"
+    
+### Qpid JMS
+
+The things are exactly the same with JMS where the provided sender adds a property to each message named "count" with an index of the message sent.
+On the consumer side, a "selector" can be used for filtering messages in the same way as before.
+
+    java -jar ./target/jms-receiver.jar -h 172.30.63.201 -p 5672 -t mytopic -f "count % 2 = 0"
