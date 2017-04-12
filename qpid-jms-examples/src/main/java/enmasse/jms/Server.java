@@ -49,6 +49,7 @@ public class Server implements MessageListener, CompletionListener {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
+  private static final String QUEUE = "myqueue";
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
   private static final String DESTINATION_LOOKUP = "myDestinationLookup";
@@ -61,6 +62,7 @@ public class Server implements MessageListener, CompletionListener {
     Options options = new Options();
     options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
+    options.addOption("q", true, "Queue");
     options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
@@ -78,11 +80,12 @@ public class Server implements MessageListener, CompletionListener {
 
         String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String address = cmd.getOptionValue("q", QUEUE);
 
         Properties props = new Properties();
         props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
         props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
-        props.put("queue.myDestinationLookup", "myqueue");
+        props.put("queue.myDestinationLookup", address);
 
         LOG.info("Starting server : connecting to [{}:{}]", messagingHost, messagingPort);
 
@@ -136,7 +139,7 @@ public class Server implements MessageListener, CompletionListener {
   public void onMessage(Message request) {
 
     try {
-      LOG.info("Received request '{}'", ((TextMessage) request).getText());
+      LOG.info("Received '{}' request on '{}'", ((TextMessage) request).getText(), request.getJMSDestination());
 
       // get the replyTo from the request as response destination
       Destination replyDestination = request.getJMSReplyTo();
@@ -155,7 +158,7 @@ public class Server implements MessageListener, CompletionListener {
   @Override
   public void onCompletion(Message request) {
     try {
-      LOG.info("Response sent '{}'", ((TextMessage)request).getText());
+      LOG.info("Response '{}' sent", ((TextMessage)request).getText());
     } catch (JMSException jmsEx) {
       jmsEx.printStackTrace();
     }

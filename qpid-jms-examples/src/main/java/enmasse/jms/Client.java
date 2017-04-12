@@ -49,6 +49,7 @@ public class Client implements CompletionListener {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
+  private static final String QUEUE = "myqueue";
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";
   private static final String DESTINATION_LOOKUP = "myDestinationLookup";
@@ -58,6 +59,7 @@ public class Client implements CompletionListener {
     Options options = new Options();
     options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
+    options.addOption("q", true, "Queue");
     options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
@@ -75,11 +77,12 @@ public class Client implements CompletionListener {
 
         String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String address = cmd.getOptionValue("q", QUEUE);
 
         Properties props = new Properties();
         props.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
         props.put("connectionfactory.myFactoryLookup", String.format("amqp://%s:%d", messagingHost, messagingPort));
-        props.put("queue.myDestinationLookup", "myqueue");
+        props.put("queue.myDestinationLookup", address);
 
         LOG.info("Starting client : connecting to [{}:{}]", messagingHost, messagingPort);
 
@@ -149,7 +152,7 @@ public class Client implements CompletionListener {
   @Override
   public void onCompletion(Message request) {
     try {
-      LOG.info("Request sent '{}'", ((TextMessage)request).getText());
+      LOG.info("Request '{}' sent to '{}'", ((TextMessage)request).getText(), request.getJMSDestination());
     } catch (JMSException jmsEx) {
       jmsEx.printStackTrace();
     }

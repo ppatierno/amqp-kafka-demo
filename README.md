@@ -211,7 +211,9 @@ Using the simple `mosquitto_pub` application, it's possible to have an MQTT to A
 
     mosquitto_pub -h 172.30.192.59 -t kafka.mytopic -q 1 -m "Hello from MQTT"
     
-## Request/Reply
+# Request/Reply : "direct" and "store and forward"
+
+## Use case
 
 One of the pattern that is difficult to support using Apache Kafka is the well know _request/reply_ where a client (requestor) sends a request message to a server (responder)
 which processes this request and sends a response back to the client.
@@ -231,14 +233,14 @@ Using EnMasse, the above needed address/queues can be provisioned through the _a
 
 For starting the server side :
 
-    java -jar ./target/vertx-server.jar -h 172.30.63.201 -p 55673
+    java -jar ./target/vertx-server.jar -h 172.30.63.201 -p 55673 -a request
 
 The provided address and port are the messaging service address and the internal port for connecting services inside the OpenShift cluster.
 The server is now able to accept requests (AMQP messages) from a client through the router. 
 
 For starting the client side :
 
-    java -jar ./target/vertx-client.jar -h 172.30.63.201 -p 5672
+    java -jar ./target/vertx-client.jar -h 172.30.63.201 -p 5672 -a request
 
 The provided address and port are the messaging service ones inside the OpenShift cluster.
 The cliend sends a request (message) to the server and receives a reply for that from the server itself.
@@ -247,19 +249,21 @@ The cliend sends a request (message) to the server and receives a reply for that
 
 For starting the server side :
 
-    java -jar ./target/jms-server.jar -h 172.30.63.201 -p 5672
+    java -jar ./target/jms-server.jar -h 172.30.63.201 -p 5672 -q myqueue
     
 The provided address and port are the messaging service ones inside the OpenShift cluster.
 The server is now a receiver on the configured queue for accepting requests from client.
 
 For starting the client side :
 
-    java -jar ./target/jms-client.jar -h 172.30.63.201 -p 5672
+    java -jar ./target/jms-client.jar -h 172.30.63.201 -p 5672 -q myqueue
 
 The client sends a request (message) to the server through the configured queue hosted in the broker inside the OpenShift cluster.
 It receives a reply from the server through a temporary queue then.
 
-## Filtering
+# Filtering : using a "selector"
+
+## Use case
 
 Another feature that we can't have with Apache Kafka is filtering messages on a topic in order to have the consumer receiving only a part of them.
 In Kafka, messages are just raw bytes and there are no metadata on each message like the AMQP protocol supports natively (i.e. system and custom properties).

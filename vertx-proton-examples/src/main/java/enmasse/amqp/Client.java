@@ -52,12 +52,14 @@ public class Client {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
+  private static final String AMQP_ADDRESS = "request";
 
   public static void main(String[] args) {
 
     Options options = new Options();
     options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
+    options.addOption("a", true, "AMQP address");
     options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
@@ -74,13 +76,14 @@ public class Client {
 
         String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String amqpAddress = cmd.getOptionValue("a", AMQP_ADDRESS);
 
         Vertx vertx = Vertx.vertx();
 
         LOG.info("Starting client : connecting to [{}:{}]", messagingHost, messagingPort);
 
         Client client = new Client();
-        client.run(vertx, messagingHost, messagingPort);
+        client.run(vertx, messagingHost, messagingPort, amqpAddress);
 
         vertx.close();
       }
@@ -91,7 +94,7 @@ public class Client {
 
   }
 
-  public void run(Vertx vertx, String messagingHost, int messagingPort) {
+  public void run(Vertx vertx, String messagingHost, int messagingPort, String amqpAddress) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -104,7 +107,7 @@ public class Client {
 
         LOG.info("Connected as {}", connection.getContainer());
 
-        // attache a link with "dynamic" for the temporary replyTo address
+        // attach a link with "dynamic" for the temporary replyTo address
         ProtonReceiver receiver = connection.createReceiver(null);
         Source source =  (Source) receiver.getSource();
         source.setDynamic(true);
@@ -114,15 +117,16 @@ public class Client {
 
             if (ar.succeeded()) {
 
-              ProtonSender sender = connection.createSender("request");
+              ProtonSender sender = connection.createSender(amqpAddress);
               sender.open();
 
-              // send a request specyfing as replyTo the "dynamic" address
-              Message message = ProtonHelper.message("request", "MyRequest");
+              // send a request specifying as replyTo the "dynamic" address
+              String body = "MyRequest";
+              Message message = ProtonHelper.message(amqpAddress, body);
               message.setReplyTo(receiver.getRemoteSource().getAddress());
               sender.send(message, delivery -> {
 
-                LOG.info("Request delivered {}", delivery.getRemoteState());
+                LOG.info("Request '{}' delivered [{}] to '{}'", body, delivery.getRemoteState(), amqpAddress);
               });
 
             }

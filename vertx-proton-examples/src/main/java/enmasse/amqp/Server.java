@@ -58,12 +58,14 @@ public class Server {
 
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
+  private static final String AMQP_ADDRESS = "request";
 
   public static void main(String[] args) {
 
     Options options = new Options();
     options.addOption("h", true, "Messaging host");
     options.addOption("p", true, "Messaging port");
+    options.addOption("a", true, "AMQP address");
     options.addOption("u", false, "Print this help");
 
     CommandLineParser parser = new DefaultParser();
@@ -80,13 +82,14 @@ public class Server {
 
         String messagingHost = cmd.getOptionValue("h", MESSAGING_HOST);
         int messagingPort = Integer.parseInt(cmd.getOptionValue("p", String.valueOf(MESSAGING_PORT)));
+        String amqpAddress = cmd.getOptionValue("a", AMQP_ADDRESS);
 
         Vertx vertx = Vertx.vertx();
 
         LOG.info("Starting server : connecting to [{}:{}]", messagingHost, messagingPort);
 
         Server server = new Server();
-        server.run(vertx, messagingHost, messagingPort);
+        server.run(vertx, messagingHost, messagingPort, amqpAddress);
 
         vertx.close();
       }
@@ -97,7 +100,7 @@ public class Server {
 
   }
 
-  public void run(Vertx vertx, String messagingHost, int messagingPort) {
+  public void run(Vertx vertx, String messagingHost, int messagingPort, String amqpAddress) {
 
     ProtonClient client = ProtonClient.create(vertx);
 
@@ -111,7 +114,7 @@ public class Server {
         LOG.info("Connected as {}", connection.getContainer());
 
         // attach link on request address
-        ProtonReceiver receiver = connection.createReceiver("request");
+        ProtonReceiver receiver = connection.createReceiver(amqpAddress);
         receiver.handler((delivery, message) -> {
 
           Section section = message.getBody();
@@ -120,10 +123,10 @@ public class Server {
           if (section instanceof Data) {
             Binary data = ((Data)section).getValue();
             request = new String(data.getArray());
-            LOG.info("Request received '{}'", request);
+            LOG.info("Request received '{}' at '{}'", request, amqpAddress);
           } else if (section instanceof AmqpValue) {
             request = (String) ((AmqpValue)section).getValue();
-            LOG.info("Request received '{}'", request);
+            LOG.info("Request received '{}' at '{}'", request, amqpAddress);
           } else {
             LOG.info("Request received but can't decode it");
             Rejected rejected = new Rejected();
