@@ -18,7 +18,7 @@ oc secret add serviceaccount/default secrets/qdrouterd-certs --for=mount
 oc secret new mqtt-certs ../certs/server-cert.pem ../certs/server-key.pem
 oc secret add serviceaccount/default secrets/mqtt-certs --for=mount
 
-oc process -f https://raw.githubusercontent.com/EnMasseProject/enmasse/master/generated/tls-enmasse-template-with-kafka.yaml | oc create -f -
+oc process -f https://github.com/EnMasseProject/enmasse/releases/download/0.8.0/tls-enmasse-template-with-kafka.yaml | oc create -f -
 echo ... done
 
 echo ENMASSE AND KAFKA DEPLOYED ON OPENSHIFT
