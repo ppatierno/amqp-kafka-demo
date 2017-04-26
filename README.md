@@ -30,7 +30,13 @@ When you want to shutdown the demo instance, there is the following useful scrip
 > it's also possible to use the TLS enabled EnMasse deployment in order to connect AMQP clients outside of the cluster through an OpenShift route. 
 In this case the _openshift_tls_deploy.sh_ should be used.
 
+The above scripts use the way to provision needed persistent volumes by the admin. In the _hostpath-provisioner_ subdirectory there are the same scripts which
+use dynamic provisioning as supported in the latest OpenShift version. The used provisioner isn't officially supported because it provisions volumes on the local
+PC, that is good for development purpose.
+
 ## Step by Step deployment
+
+> The following is the description of the step by step deployment without using the dynamic provisioning of volumes.
 
 ### Creating project
 
