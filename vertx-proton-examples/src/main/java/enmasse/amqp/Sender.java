@@ -36,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -126,7 +127,7 @@ public class Sender {
             if (++count <= messagesCount) {
 
               Message message = ProtonHelper.message(amqpAddress,
-                String.format("Hello %d from Vert.x Proton [%s] !", count, connection.getContainer()));
+                String.format("Hello %d from Vert.x Proton [%s] ! (on %s)", count, connection.getContainer(), Instant.now()));
 
               Map<Symbol, Object> map = new HashMap<>();
               map.put(Symbol.getSymbol("count"), count);

@@ -36,6 +36,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+import java.time.Instant;
 import java.util.Properties;
 
 /**
@@ -136,7 +137,7 @@ public class Sender implements CompletionListener {
       MessageProducer messageProducer = session.createProducer(destination);
 
       for (int i = 1; i <= messagesCount; i++) {
-        TextMessage message = session.createTextMessage(String.format("Hello %d from JMS !", i));
+        TextMessage message = session.createTextMessage(String.format("Hello %d from JMS ! (on %s)", i, Instant.now()));
         message.setIntProperty("count", i);
         message.setJMSMessageID(String.valueOf(i));
         messageProducer.send(message, Message.DEFAULT_DELIVERY_MODE, Message.DEFAULT_PRIORITY, Message.DEFAULT_TIME_TO_LIVE,
