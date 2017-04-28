@@ -67,6 +67,7 @@
                 <input type="text" class="form-control" placeholder="offset ..." id="offset">
                 <span class="input-group-btn">
                   <button class="btn btn-default" type="button" id="seek">Seek!</button>
+                  <button class="btn btn-default" type="button" id="clean">Clean!</button>
                 </span>
               </div><!-- /input-group -->
             </div>
@@ -120,6 +121,10 @@
         }
 
         eb.publish("config", "seek", headers);
+      });
+
+      $('#clean').click(function() {
+        $('#messages').empty();
       });
     </script>
 
