@@ -51,7 +51,7 @@ public class Sender implements CompletionListener {
   private static final String TOPIC = "kafka.mytopic";
   private static final String QUEUE = "myqueue";
 
-  private static final int MESSAGES_DELAY = 10;
+  private static final int MESSAGES_DELAY = 200;
   private static final int MESSAGES_COUNT = 50;
 
   private static final String FACTORY_LOOKUP = "myFactoryLookup";

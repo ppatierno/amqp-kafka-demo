@@ -50,7 +50,7 @@ public class Sender {
   private static final String MESSAGING_HOST = "localhost";
   private static final int MESSAGING_PORT = 5672;
   private static final String AMQP_ADDRESS = "kafka.mytopic";
-  private static final int MESSAGES_DELAY = 10;
+  private static final int MESSAGES_DELAY = 200;
   private static final int MESSAGES_COUNT = 50;
 
   private ProtonConnection connection;
