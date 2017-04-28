@@ -18,21 +18,20 @@ accessible registry for Docker and starting the cluster locally.
 
 In order to deploy this demo on OpenShift, a bunch of steps are needed as explained in the next chapter. If you want to avoid to do them, a "one click" deployment
 script is available in the repository.
-After having the OpenShift cluster up and running and the client tools in the PATH, the deployment can be executed launching the following bash script
-(from the "scripts" directory)
+After having the OpenShift cluster up and running and the client tools in the PATH, the deployment can be executed launching the following bash script :
 
     bash openshift_deploy.sh
 
-When you want to shutdown the demo instance, there is the following useful script :
+There are two different versions for this script under the "scripts" folder :
 
-    bash openshift_undeploy.sh
+* hostpath-provisioner : the persistent volumes needed for the Apache Kafka deployment are dynamically provisioned using storage class and a related provisioner that
+in this case creates volumes on the local PC for development purpose.
+* manual-volumes : the persistent volumes needed for the Apache Kafka deployment are deployed manually by the OpenShift cluster admin.
+
+> The used provisioner isn't officially supported because it provisions volumes on the local PC, that is good for development purpose.
 
 > it's also possible to use the TLS enabled EnMasse deployment in order to connect AMQP clients outside of the cluster through an OpenShift route. 
 In this case the _openshift_tls_deploy.sh_ should be used.
-
-The above scripts use the way to provision needed persistent volumes by the admin. In the _hostpath-provisioner_ subdirectory there are the same scripts which
-use dynamic provisioning as supported in the latest OpenShift version. The used provisioner isn't officially supported because it provisions volumes on the local
-PC, that is good for development purpose.
 
 ## Step by Step deployment
 
@@ -124,6 +123,10 @@ From the _kafka-consumer-webui_, execute the folliwng command for building the a
     mvn package -Pbuild-docker-image
 
 After the build, an _enmasseproject/kafka-consumer-webui_ image is available in the local Docker registry and the OpenShift resources files in the target directory.
+
+Before explaining the steps for having the application up and running, just point out that a "one click" deployment script is available :
+
+    bash kafka_app_deploy.sh
 
 This application can be configured in terms of consumer group and topic to read from; this configuration is provided through a ConfigMap that need to be deployed in the
 OpenShift cluster before deploying the entire application.
