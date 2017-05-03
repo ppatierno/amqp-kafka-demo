@@ -238,6 +238,10 @@ Using EnMasse, the above needed address/queues can be provisioned through the _a
 
     curl -X PUT -H "content-type: application/json" --data-binary @addresses.json http://$(oc get service -o jsonpath='{.spec.clusterIP}' address-controller):8080/v3/address
 
+The following script is provided in the "scripts" directory for doing that.
+
+    bash addresses_deploy.sh
+
 ### AMQP Vert.x Proton
 
 For starting the server side :
