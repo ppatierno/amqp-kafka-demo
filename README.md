@@ -1,3 +1,8 @@
+This repository contains all the bits for setting up the demo of the "Red Hat JBoss AMQ and Apache Kafka : which to use ?" session at Red Hat Summit 2017 by Paolo Patierno (me) and Christian Posta. Other than the source code following :
+
+* [Slide deck](https://www.slideshare.net/paolopat/red-hat-jboss-amq-and-apache-kafka-which-to-use)
+* A playlist with short [videos](https://www.youtube.com/playlist?list=PLCO8cNaJZ5Jq7svgm0BAWPADoVR-WnZaL) about the demo
+
 # Bridging AMQP - Kafka (demo)
 
 This demo shows how it's possible to use the [AMQP](http://www.amqp.org/) protocol for sending/receiving messages to/from [Apache Kafka](https://kafka.apache.org/) cluster.
