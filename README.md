@@ -182,7 +182,7 @@ The messages are sent to the Kafka topic and received by the consumer applicatio
 
 In the same way, we can receive messages :
 
-    java -jar ./target/vertx-receiver.jar enmasse.amqp.Receiver -h 172.30.63.201 -a kafka.mytopic/group.id/mygroup
+    java -jar ./target/vertx-receiver.jar -h 172.30.63.201 -a kafka.mytopic/group.id/mygroup
 
 Another available option is specifying a filter on messages to receive (i.e. "count % 2 = 0"). Of course, it works against a broker and not Apache Kafka.
 
