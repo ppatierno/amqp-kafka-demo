@@ -107,7 +107,7 @@ First of all, some permissions need to be granted :
 EnMasse is provided with different templates which are able to provision the components with/without SSL/TLS support for example or with/without Kafka support.
 For this demo, the template with Kafka support is needed and the entire EnMasse infrastracture can be deployed in the following way :
 
-    oc process -f openshift/enmasse-with-kafka.yaml  | oc create -n enmasse-spark -f -
+        oc process -f openshift/enmasse-with-kafka.yaml  | oc create -n enmasse-spark -f -
 
 The final deployment is visible using the OpenShift console.
 
