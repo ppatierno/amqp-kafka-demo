@@ -96,21 +96,18 @@ Accessing the OpenShift console, the current deployment should be visible.
 
 ### Deploying EnMasse with Kafka support
 
-For deploying the EnMasse platform you can follow the instruction [here](https://github.com/EnMasseProject/openshift-configuration) but the main steps
-are described here for simplicity.
+In order to deploy EnMasse you can follow this Getting Started [guide](https://github.com/EnMasseProject/enmasse/blob/master/documentation/getting-started/openshift.md) mainly based on executing following commands for a manual installation.
 
-Some permissions need to be granted before setting up the messaging service.
+First of all, some permissions need to be granted :
 
-The permissions can be setup with the following commands:
-
-    oc create sa enmasse-service-account -n $(oc project -q)
-    oc policy add-role-to-user view system:serviceaccount:$(oc project -q):default
-    oc policy add-role-to-user edit system:serviceaccount:$(oc project -q):enmasse-service-account
+        oc create sa enmasse-service-account -n enmasse
+        oc policy add-role-to-user view system:serviceaccount:enmasse:default
+        oc policy add-role-to-user edit system:serviceaccount:enmasse:enmasse-service-account
 
 EnMasse is provided with different templates which are able to provision the components with/without SSL/TLS support for example or with/without Kafka support.
 For this demo, the template with Kafka support is needed and the entire EnMasse infrastracture can be deployed in the following way :
 
-    oc process -f https://raw.githubusercontent.com/EnMasseProject/enmasse/master/generated/enmasse-template-with-kafka.yaml | oc create -f -
+    oc process -f openshift/enmasse-with-kafka.yaml  | oc create -n enmasse-spark -f -
 
 The final deployment is visible using the OpenShift console.
 
